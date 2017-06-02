@@ -15,6 +15,7 @@ type Deploy struct {
 	image   string
 }
 
+// NewDeploy return a new Deploy struct, and initialize aws ecs api client
 func NewDeploy(cluster, name, image, profile, region string) *Deploy {
 	awsECS := ecs.New(session.New(), newConfig(profile, region))
 	return &Deploy{
@@ -25,6 +26,7 @@ func NewDeploy(cluster, name, image, profile, region string) *Deploy {
 	}
 }
 
+// Deploy run deploy commands
 func (d *Deploy) Deploy() {
 	if err := d.TaskDefinition(); err != nil {
 		log.Fatalln(err)

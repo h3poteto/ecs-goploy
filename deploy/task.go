@@ -7,6 +7,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ecs"
 )
 
+// TaskDefinition get a current task definition
 func (d *Deploy) TaskDefinition() error {
 	taskArn, err := d.Service()
 	if err != nil {
@@ -25,6 +26,7 @@ func (d *Deploy) TaskDefinition() error {
 	return nil
 }
 
+// Service get target service
 func (d *Deploy) Service() (*string, error) {
 	params := &ecs.DescribeServicesInput{
 		Services: []*string{
