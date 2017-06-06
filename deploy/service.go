@@ -7,6 +7,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ecs"
+	"github.com/pkg/errors"
 )
 
 // DescribeService get current service
@@ -43,48 +44,21 @@ func (d *Deploy) UpdateService(service *ecs.Service, taskDefinition *ecs.TaskDef
 	if *newService.DesiredCount <= 0 {
 		return nil
 	}
-	return d.waitUpdating(5*time.Minute, taskDefinition)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	defer cancel()
+	return d.waitUpdating(ctx, taskDefinition)
 }
 
 // waitUpdating wait new task is deployed.
-func (d *Deploy) waitUpdating(timeout time.Duration, newTaskDefinition *ecs.TaskDefinition) error {
-	var newTask *ecs.Task
-	for {
-		log.Println("[INFO] Waiting for new task start...")
+func (d *Deploy) waitUpdating(ctx context.Context, newTaskDefinition *ecs.TaskDefinition) error {
+	log.Println("[INFO] Waiting for new task start...")
 
-		time.Sleep(5 * time.Second)
-
-		taskParams := &ecs.ListTasksInput{
-			Cluster:     aws.String(d.cluster),
-			MaxResults:  aws.Int64(100),
-			ServiceName: aws.String(d.name),
-		}
-		resp, err := d.awsECS.ListTasks(taskParams)
-		if err != nil {
-			return err
-		}
-		currentTaskArns := resp.TaskArns
-
-		if len(currentTaskArns) <= 0 {
-			continue
-		}
-		params := &ecs.DescribeTasksInput{
-			Cluster: aws.String(d.cluster),
-			Tasks:   currentTaskArns,
-		}
-		currentTasks, err := d.awsECS.DescribeTasks(params)
-		if err != nil {
-			return err
-		}
-		newTask = d.findNewTask(currentTasks.Tasks, newTaskDefinition)
-		if newTask != nil {
-			break
-		}
+	newTask, err := d.waitNewTaskStart(ctx, newTaskDefinition)
+	if err != nil {
+		return err
 	}
-	log.Println("[INFO] Waiting for new task is available...")
 
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
+	log.Println("[INFO] Waiting for new task is available...")
 
 	params := &ecs.DescribeTasksInput{
 		Cluster: aws.String(d.cluster),
@@ -92,13 +66,66 @@ func (d *Deploy) waitUpdating(timeout time.Duration, newTaskDefinition *ecs.Task
 			aws.String(*newTask.TaskArn),
 		},
 	}
-	err := d.awsECS.WaitUntilTasksRunningWithContext(ctx, params)
+	err = d.awsECS.WaitUntilTasksRunningWithContext(ctx, params)
 	if err != nil {
 		return err
 	}
 
 	log.Println("[INFO] New task is available")
 	return nil
+}
+
+func (d *Deploy) waitNewTaskStart(ctx context.Context, newTaskDefinition *ecs.TaskDefinition) (*ecs.Task, error) {
+	newTaskCh := make(chan *ecs.Task, 1)
+	errCh := make(chan error, 1)
+
+	go func() {
+		for {
+			time.Sleep(5 * time.Second)
+
+			taskParams := &ecs.ListTasksInput{
+				Cluster:     aws.String(d.cluster),
+				MaxResults:  aws.Int64(100),
+				ServiceName: aws.String(d.name),
+			}
+			resp, err := d.awsECS.ListTasks(taskParams)
+			if err != nil {
+				errCh <- err
+				return
+			}
+			currentTaskArns := resp.TaskArns
+
+			if len(currentTaskArns) <= 0 {
+				continue
+			}
+			params := &ecs.DescribeTasksInput{
+				Cluster: aws.String(d.cluster),
+				Tasks:   currentTaskArns,
+			}
+			currentTasks, err := d.awsECS.DescribeTasks(params)
+			if err != nil {
+				errCh <- err
+				return
+			}
+			task := d.findNewTask(currentTasks.Tasks, newTaskDefinition)
+			if task != nil {
+				newTaskCh <- task
+				return
+			}
+		}
+	}()
+
+	select {
+	case err := <-errCh:
+		if err != nil {
+			return nil, err
+		}
+	case newTask := <-newTaskCh:
+		return newTask, nil
+	case <-ctx.Done():
+		return nil, errors.New("process timeout")
+	}
+	return nil, errors.New("can not find new task")
 }
 
 func (d *Deploy) findNewTask(tasks []*ecs.Task, newTaskDefinition *ecs.TaskDefinition) *ecs.Task {
