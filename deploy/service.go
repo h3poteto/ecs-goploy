@@ -1,6 +1,7 @@
 package deploy
 
 import (
+	"context"
 	"log"
 	"time"
 
@@ -47,8 +48,9 @@ func (d *Deploy) UpdateService(service *ecs.Service, taskDefinition *ecs.TaskDef
 
 // waitUpdating wait new task is deployed.
 func (d *Deploy) waitUpdating(timeout time.Duration, newTaskDefinition *ecs.TaskDefinition) error {
+	var newTask *ecs.Task
 	for {
-		log.Println("[INFO] Waiting for new task running...")
+		log.Println("[INFO] Waiting for new task start...")
 
 		time.Sleep(5 * time.Second)
 
@@ -74,22 +76,36 @@ func (d *Deploy) waitUpdating(timeout time.Duration, newTaskDefinition *ecs.Task
 		if err != nil {
 			return err
 		}
-		if d.isNewTaskRunning(currentTasks.Tasks, newTaskDefinition) {
+		newTask = d.findNewTask(currentTasks.Tasks, newTaskDefinition)
+		if newTask != nil {
 			break
 		}
 	}
+	log.Println("[INFO] Waiting for new task is available...")
 
-	log.Println("[INFO] New task is running")
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	params := &ecs.DescribeTasksInput{
+		Cluster: aws.String(d.cluster),
+		Tasks: []*string{
+			aws.String(*newTask.TaskArn),
+		},
+	}
+	err := d.awsECS.WaitUntilTasksRunningWithContext(ctx, params)
+	if err != nil {
+		return err
+	}
+
+	log.Println("[INFO] New task is available")
 	return nil
 }
 
-func (d *Deploy) isNewTaskRunning(tasks []*ecs.Task, newTaskDefinition *ecs.TaskDefinition) bool {
+func (d *Deploy) findNewTask(tasks []*ecs.Task, newTaskDefinition *ecs.TaskDefinition) *ecs.Task {
 	for _, task := range tasks {
 		if *task.TaskDefinitionArn == *newTaskDefinition.TaskDefinitionArn {
-			if *task.LastStatus == *aws.String("RUNNING") {
-				return true
-			}
+			return task
 		}
 	}
-	return false
+	return nil
 }
