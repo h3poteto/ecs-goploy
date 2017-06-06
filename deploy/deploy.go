@@ -39,16 +39,23 @@ func NewDeploy(cluster, name, profile, region, imageWithTag string) *Deploy {
 }
 
 // Deploy run deploy commands
-func (d *Deploy) Deploy() {
-	task, err := d.TaskDefinition()
+func (d *Deploy) Deploy() error {
+	service, err := d.DescribeService()
 	if err != nil {
-		log.Fatalf("[ERROR] Can not get current task definition: %+v\n", err)
+		return errors.Wrap(err, "Can not get current service: ")
 	}
-	_, err = d.RegisterTaskDefinition(task)
+	taskDefinition, err := d.TaskDefinition(service)
 	if err != nil {
-		log.Fatalf("[ERROR] Can not regist new task definition: %+v\n", err)
+		return errors.Wrap(err, "Can not get current task definition: ")
 	}
-
+	newTaskDefinition, err := d.RegisterTaskDefinition(taskDefinition)
+	if err != nil {
+		return errors.Wrap(err, "Can not regist new task definition: ")
+	}
+	if err := d.UpdateService(service, newTaskDefinition); err != nil {
+		return errors.Wrap(err, "Can not update service: ")
+	}
+	return nil
 }
 
 func divideImageAndTag(imageWithTag string) (*string, *string, error) {
