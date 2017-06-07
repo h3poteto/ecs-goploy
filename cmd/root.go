@@ -16,5 +16,6 @@ func init() {
 	cobra.OnInitialize()
 	RootCmd.AddCommand(
 		deployCmd(),
+		versionCmd(),
 	)
 }
