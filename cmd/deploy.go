@@ -22,7 +22,7 @@ func deployCmd() *cobra.Command {
 	d := &deploy{}
 	cmd := &cobra.Command{
 		Use:   "deploy",
-		Short: "Deploy ecs",
+		Short: "Deploy ECS",
 		Run:   d.deploy,
 	}
 
@@ -32,7 +32,7 @@ func deployCmd() *cobra.Command {
 	flags.StringVarP(&d.imageWithTag, "image", "i", "", "Name of Docker image to run, ex: repo/image:latest")
 	flags.StringVarP(&d.profile, "profile", "p", "", "AWS Profile to use")
 	flags.StringVarP(&d.region, "region", "r", "", "AWS Region Name")
-	flags.IntVarP(&d.timeout, "timeout", "t", 300, "Default is 300[s]. Script monitors ECS Service for new task definition to be running")
+	flags.IntVarP(&d.timeout, "timeout", "t", 300, "Timeout seconds. Script monitors ECS Service for new task definition to be running")
 	flags.BoolVar(&d.enableRollback, "enable-rollback", false, "Rollback task definition if new version is not running before TIMEOUT")
 
 	return cmd
