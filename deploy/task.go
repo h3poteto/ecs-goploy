@@ -5,11 +5,13 @@ import (
 	"github.com/aws/aws-sdk-go/service/ecs"
 )
 
+// Task have image and task definition information
 type Task struct {
 	image          *Image
 	taskDefinition *ecs.TaskDefinition
 }
 
+// Image have repository and tag string
 type Image struct {
 	repository string
 	tag        string

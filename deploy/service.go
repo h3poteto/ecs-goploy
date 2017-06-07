@@ -101,6 +101,8 @@ func (d *Deploy) checkNewTaskRunning(deployments []*ecs.Deployment, newTaskDefin
 	return false
 }
 
+// Rollback update service with current task definition
+// This method call update-service api and do not wait for execution to end
 func (d *Deploy) Rollback(service *ecs.Service) error {
 	if d.currentTask == nil || d.currentTask.taskDefinition == nil {
 		return errors.New("old task definition is not exist")
