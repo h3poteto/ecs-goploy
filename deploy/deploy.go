@@ -52,6 +52,8 @@ func (d *Deploy) Deploy() error {
 	if err != nil {
 		return errors.Wrap(err, "Can not regist new task definition: ")
 	}
+	log.Printf("[INFO] new task definition: %+v\n", newTaskDefinition)
+
 	if err := d.UpdateService(service, newTaskDefinition); err != nil {
 		return errors.Wrap(err, "Can not update service: ")
 	}

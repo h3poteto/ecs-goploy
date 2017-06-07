@@ -51,88 +51,52 @@ func (d *Deploy) UpdateService(service *ecs.Service, taskDefinition *ecs.TaskDef
 
 // waitUpdating wait new task is deployed.
 func (d *Deploy) waitUpdating(ctx context.Context, newTaskDefinition *ecs.TaskDefinition) error {
-	log.Println("[INFO] Waiting for new task start...")
-
-	newTask, err := d.waitNewTaskStart(ctx, newTaskDefinition)
-	if err != nil {
-		return err
-	}
-
-	log.Println("[INFO] Waiting for new task is available...")
-
-	params := &ecs.DescribeTasksInput{
-		Cluster: aws.String(d.cluster),
-		Tasks: []*string{
-			aws.String(*newTask.TaskArn),
-		},
-	}
-	err = d.awsECS.WaitUntilTasksRunningWithContext(ctx, params)
-	if err != nil {
-		return err
-	}
-
-	log.Println("[INFO] New task is available")
-	return nil
-}
-
-func (d *Deploy) waitNewTaskStart(ctx context.Context, newTaskDefinition *ecs.TaskDefinition) (*ecs.Task, error) {
-	newTaskCh := make(chan *ecs.Task, 1)
+	log.Println("[INFO] Waiting for new task running...")
 	errCh := make(chan error, 1)
-
+	done := make(chan struct{}, 1)
 	go func() {
-		for {
-			time.Sleep(5 * time.Second)
-
-			taskParams := &ecs.ListTasksInput{
-				Cluster:     aws.String(d.cluster),
-				MaxResults:  aws.Int64(100),
-				ServiceName: aws.String(d.name),
-			}
-			resp, err := d.awsECS.ListTasks(taskParams)
-			if err != nil {
-				errCh <- err
-				return
-			}
-			currentTaskArns := resp.TaskArns
-
-			if len(currentTaskArns) <= 0 {
-				continue
-			}
-			params := &ecs.DescribeTasksInput{
-				Cluster: aws.String(d.cluster),
-				Tasks:   currentTaskArns,
-			}
-			currentTasks, err := d.awsECS.DescribeTasks(params)
-			if err != nil {
-				errCh <- err
-				return
-			}
-			task := d.findNewTask(currentTasks.Tasks, newTaskDefinition)
-			if task != nil {
-				newTaskCh <- task
-				return
-			}
+		err := d.waitSwitchTask(newTaskDefinition)
+		if err != nil {
+			errCh <- err
 		}
+		close(done)
 	}()
-
 	select {
 	case err := <-errCh:
 		if err != nil {
-			return nil, err
+			return err
 		}
-	case newTask := <-newTaskCh:
-		return newTask, nil
+	case <-done:
+		log.Println("[INFO] New task is running, and old task is stopped")
 	case <-ctx.Done():
-		return nil, errors.New("process timeout")
+		return errors.New("process timeout")
 	}
-	return nil, errors.New("can not find new task")
+
+	return nil
 }
 
-func (d *Deploy) findNewTask(tasks []*ecs.Task, newTaskDefinition *ecs.TaskDefinition) *ecs.Task {
-	for _, task := range tasks {
-		if *task.TaskDefinitionArn == *newTaskDefinition.TaskDefinitionArn {
-			return task
+func (d *Deploy) waitSwitchTask(newTaskDefinition *ecs.TaskDefinition) error {
+	for {
+		time.Sleep(5 * time.Second)
+
+		service, err := d.DescribeService()
+		if err != nil {
+			return err
+		}
+		if d.checkNewTaskRunning(service.Deployments, newTaskDefinition) {
+			return nil
 		}
 	}
-	return nil
+}
+
+func (d *Deploy) checkNewTaskRunning(deployments []*ecs.Deployment, newTaskDefinition *ecs.TaskDefinition) bool {
+	if len(deployments) != 1 {
+		return false
+	}
+	for _, deploy := range deployments {
+		if *deploy.TaskDefinition == *newTaskDefinition.TaskDefinitionArn && *deploy.Status == "PRIMARY" && *deploy.DesiredCount == *deploy.RunningCount {
+			return true
+		}
+	}
+	return false
 }

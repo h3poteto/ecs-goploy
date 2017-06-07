@@ -38,4 +38,5 @@ func (d *deploy) deploy(cmd *cobra.Command, args []string) {
 	if err := e.Deploy(); err != nil {
 		log.Fatalf("[ERROR] %v", err)
 	}
+	log.Println("[INFO] Deploy success")
 }

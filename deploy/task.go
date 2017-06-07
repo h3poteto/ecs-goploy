@@ -3,8 +3,6 @@ package deploy
 import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ecs"
-
-	"log"
 )
 
 // TaskDefinition get a current task definition
@@ -39,7 +37,6 @@ func (d *Deploy) RegisterTaskDefinition(baseDefinition *ecs.TaskDefinition) (*ec
 		Volumes:              baseDefinition.Volumes,
 	}
 
-	log.Printf("[INFO] new task definition: %+v\n", params)
 	resp, err := d.awsECS.RegisterTaskDefinition(params)
 	if err != nil {
 		return nil, err
