@@ -11,30 +11,39 @@ import (
 
 // Deploy have target ecs information
 type Deploy struct {
-	awsECS  *ecs.ECS
-	cluster string
-	name    string
-	image   *string
-	tag     *string
+	awsECS      *ecs.ECS
+	cluster     string
+	name        string
+	currentTask *Task
+	newTask     *Task
 }
 
 // NewDeploy return a new Deploy struct, and initialize aws ecs api client
 func NewDeploy(cluster, name, profile, region, imageWithTag string) *Deploy {
 	awsECS := ecs.New(session.New(), newConfig(profile, region))
-	var image, tag *string
+	currentTask := &Task{}
+	newTask := &Task{}
 	if len(imageWithTag) > 0 {
 		var err error
-		image, tag, err = divideImageAndTag(imageWithTag)
+		repository, tag, err := divideImageAndTag(imageWithTag)
 		if err != nil {
 			log.Fatalf("[ERROR] Can not parse --image parameter: %+v\n", err)
+		}
+		image := &Image{
+			*repository,
+			*tag,
+		}
+		newTask = &Task{
+			image:          image,
+			taskDefinition: nil,
 		}
 	}
 	return &Deploy{
 		awsECS,
 		cluster,
 		name,
-		image,
-		tag,
+		currentTask,
+		newTask,
 	}
 }
 
@@ -52,6 +61,7 @@ func (d *Deploy) Deploy() error {
 	if err != nil {
 		return errors.Wrap(err, "Can not regist new task definition: ")
 	}
+	d.newTask.taskDefinition = newTaskDefinition
 	log.Printf("[INFO] new task definition: %+v\n", newTaskDefinition)
 
 	if err := d.UpdateService(service, newTaskDefinition); err != nil {
