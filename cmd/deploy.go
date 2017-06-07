@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"log"
+
 	ecsdeploy "github.com/crowdworks/ecs-goploy/deploy"
 	"github.com/spf13/cobra"
 )
@@ -33,5 +35,8 @@ func deployCmd() *cobra.Command {
 
 func (d *deploy) deploy(cmd *cobra.Command, args []string) {
 	e := ecsdeploy.NewDeploy(d.cluster, d.name, d.profile, d.region, d.imageWithTag)
-	e.Deploy()
+	if err := e.Deploy(); err != nil {
+		log.Fatalf("[ERROR] %v", err)
+	}
+	log.Println("[INFO] Deploy success")
 }

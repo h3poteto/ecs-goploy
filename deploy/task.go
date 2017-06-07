@@ -3,19 +3,12 @@ package deploy
 import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ecs"
-
-	"log"
 )
 
 // TaskDefinition get a current task definition
-func (d *Deploy) TaskDefinition() (*ecs.TaskDefinition, error) {
-	taskArn, err := d.Service()
-	if err != nil {
-		return nil, err
-	}
-
+func (d *Deploy) TaskDefinition(service *ecs.Service) (*ecs.TaskDefinition, error) {
 	params := &ecs.DescribeTaskDefinitionInput{
-		TaskDefinition: aws.String(*taskArn),
+		TaskDefinition: aws.String(*service.TaskDefinition),
 	}
 	resp, err := d.awsECS.DescribeTaskDefinition(params)
 	if err != nil {
@@ -23,22 +16,6 @@ func (d *Deploy) TaskDefinition() (*ecs.TaskDefinition, error) {
 	}
 
 	return resp.TaskDefinition, nil
-}
-
-// Service get target service
-func (d *Deploy) Service() (*string, error) {
-	params := &ecs.DescribeServicesInput{
-		Services: []*string{
-			aws.String(d.name),
-		},
-		Cluster: aws.String(d.cluster),
-	}
-	resp, err := d.awsECS.DescribeServices(params)
-	if err != nil {
-		return nil, err
-	}
-
-	return resp.Services[0].TaskDefinition, nil
 }
 
 // RegisterTaskDefinition register new task definition if needed
@@ -60,7 +37,6 @@ func (d *Deploy) RegisterTaskDefinition(baseDefinition *ecs.TaskDefinition) (*ec
 		Volumes:              baseDefinition.Volumes,
 	}
 
-	log.Printf("[INFO] new task definition: %+v\n", params)
 	resp, err := d.awsECS.RegisterTaskDefinition(params)
 	if err != nil {
 		return nil, err
