@@ -39,7 +39,7 @@ func (d *Deploy) UpdateService(service *ecs.Service, taskDefinition *ecs.TaskDef
 	if err != nil {
 		return err
 	}
-	log.Println(resp)
+
 	newService := resp.Service
 	if *newService.DesiredCount <= 0 {
 		return nil
@@ -99,4 +99,23 @@ func (d *Deploy) checkNewTaskRunning(deployments []*ecs.Deployment, newTaskDefin
 		}
 	}
 	return false
+}
+
+func (d *Deploy) Rollback(service *ecs.Service) error {
+	if d.currentTask == nil || d.currentTask.taskDefinition == nil {
+		return errors.New("old task definition is not exist")
+	}
+	params := &ecs.UpdateServiceInput{
+		Service:                 aws.String(d.name),
+		Cluster:                 aws.String(d.cluster),
+		DeploymentConfiguration: service.DeploymentConfiguration,
+		DesiredCount:            service.DesiredCount,
+		TaskDefinition:          d.currentTask.taskDefinition.TaskDefinitionArn,
+	}
+	_, err := d.awsECS.UpdateService(params)
+	if err != nil {
+		return err
+	}
+	log.Println("[INFO] Rolled back")
+	return nil
 }

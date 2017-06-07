@@ -57,6 +57,8 @@ func (d *Deploy) Deploy() error {
 	if err != nil {
 		return errors.Wrap(err, "Can not get current task definition: ")
 	}
+	d.currentTask.taskDefinition = taskDefinition
+
 	newTaskDefinition, err := d.RegisterTaskDefinition(taskDefinition)
 	if err != nil {
 		return errors.Wrap(err, "Can not regist new task definition: ")
@@ -64,8 +66,15 @@ func (d *Deploy) Deploy() error {
 	d.newTask.taskDefinition = newTaskDefinition
 	log.Printf("[INFO] new task definition: %+v\n", newTaskDefinition)
 
-	if err := d.UpdateService(service, newTaskDefinition); err != nil {
-		return errors.Wrap(err, "Can not update service: ")
+	err = d.UpdateService(service, newTaskDefinition)
+	if err != nil {
+		log.Println("[INFO] update failed")
+		updateError := errors.Wrap(err, "Can not update service: ")
+		log.Printf("[INFO] Rolling back to: %+v\n", d.currentTask.taskDefinition)
+		if err := d.Rollback(service); err != nil {
+			return errors.Wrap(updateError, err.Error())
+		}
+		return updateError
 	}
 	return nil
 }
