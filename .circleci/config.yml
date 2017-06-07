@@ -1,0 +1,28 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: h3poteto/golang
+        environment:
+          GOPATH: /go
+    working_directory: /go/src/github.com/crowdworks/ecs-goploy
+    steps:
+      - checkout
+      - run:
+          name: Checking golang version
+          command: go version
+      - restore_cache:
+          name: Restoring cache - vendor
+          keys:
+            - vendor-{{ checksum "Gopkg.toml" }}-{{ checksum "Gopkg.lock" }}
+      - run:
+          name: Install packages
+          command: dep ensure
+      - run:
+          name: Build
+          command: go build
+      - save_cache:
+          name: Saving cache - vendor
+          key: vendor-{{ checksum "Gopkg.toml" }}-{{ checksum "Gopkg.lock" }}
+          paths:
+            - "vendor"
