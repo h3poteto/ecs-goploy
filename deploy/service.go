@@ -44,7 +44,7 @@ func (d *Deploy) UpdateService(service *ecs.Service, taskDefinition *ecs.TaskDef
 	if *newService.DesiredCount <= 0 {
 		return nil
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), d.timeout)
 	defer cancel()
 	return d.waitUpdating(ctx, taskDefinition)
 }

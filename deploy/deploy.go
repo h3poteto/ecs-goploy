@@ -3,6 +3,7 @@ package deploy
 import (
 	"log"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ecs"
@@ -11,15 +12,17 @@ import (
 
 // Deploy have target ecs information
 type Deploy struct {
-	awsECS      *ecs.ECS
-	cluster     string
-	name        string
-	currentTask *Task
-	newTask     *Task
+	awsECS         *ecs.ECS
+	cluster        string
+	name           string
+	currentTask    *Task
+	newTask        *Task
+	timeout        time.Duration
+	enableRollback bool
 }
 
 // NewDeploy return a new Deploy struct, and initialize aws ecs api client
-func NewDeploy(cluster, name, profile, region, imageWithTag string) *Deploy {
+func NewDeploy(cluster, name, profile, region, imageWithTag string, timeout time.Duration, enableRollback bool) *Deploy {
 	awsECS := ecs.New(session.New(), newConfig(profile, region))
 	currentTask := &Task{}
 	newTask := &Task{}
@@ -44,6 +47,8 @@ func NewDeploy(cluster, name, profile, region, imageWithTag string) *Deploy {
 		name,
 		currentTask,
 		newTask,
+		timeout,
+		enableRollback,
 	}
 }
 
@@ -70,6 +75,9 @@ func (d *Deploy) Deploy() error {
 	if err != nil {
 		log.Println("[INFO] update failed")
 		updateError := errors.Wrap(err, "Can not update service: ")
+		if !d.enableRollback {
+			return updateError
+		}
 		log.Printf("[INFO] Rolling back to: %+v\n", d.currentTask.taskDefinition)
 		if err := d.Rollback(service); err != nil {
 			return errors.Wrap(updateError, err.Error())
@@ -82,7 +90,7 @@ func (d *Deploy) Deploy() error {
 func divideImageAndTag(imageWithTag string) (*string, *string, error) {
 	res := strings.Split(imageWithTag, ":")
 	if len(res) >= 3 {
-		return nil, nil, errors.New("image format is wrong.")
+		return nil, nil, errors.New("image format is wrong")
 	}
 	return &res[0], &res[1], nil
 
