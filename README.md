@@ -11,14 +11,15 @@ Get binary from github.
 
 ```
 $ ./ecs-goploy help
-Deploy commands for ecs
+Deploy commands for ECS
 
 Usage:
   ecs-goploy [command]
 
 Available Commands:
-  deploy      Deploy ecs
+  deploy      Deploy ECS
   help        Help about any command
+  version     Print the version number
 
 Flags:
   -h, --help   help for ecs-goploy
@@ -26,7 +27,7 @@ Flags:
 Use "ecs-goploy [command] --help" for more information about a command.
 
 $ ./ecs-goploy deploy --help
-Deploy ecs
+Deploy ECS
 
 Usage:
   ecs-goploy deploy [flags]
@@ -65,6 +66,6 @@ or prepare IAM Role or IAM Task Role.
 AWS region can be set command argument: `--region`.
 
 
-
 # TODO
-- [ ] write todo...
+- [ ] Tests
+- [ ] Deploy when a task definition is provided in command argument: `--task-definition`

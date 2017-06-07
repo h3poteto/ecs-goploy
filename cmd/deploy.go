@@ -22,7 +22,7 @@ func deployCmd() *cobra.Command {
 	d := &deploy{}
 	cmd := &cobra.Command{
 		Use:   "deploy",
-		Short: "Deploy ecs",
+		Short: "Deploy ECS",
 		Run:   d.deploy,
 	}
 

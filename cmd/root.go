@@ -7,7 +7,7 @@ import (
 // RootCmd root comand for cobra
 var RootCmd = &cobra.Command{
 	Use:           "ecs-goploy",
-	Short:         "Deploy commands for ecs",
+	Short:         "Deploy commands for ECS",
 	SilenceErrors: true,
 	SilenceUsage:  true,
 }
