@@ -7,7 +7,13 @@ __NOTICE: This package is ACTIVELY under development. API (both public and inter
 
 # Install
 
-Get binary from github.
+Get binary from github:
+
+```
+$ wget https://github.com/crowdworks/ecs-goploy/releases/download/v0.1.0/ecs-goploy_v0.1.0_linux_amd64.zip
+$ unzip ecs-goploy_v0.1.0_linux_amd64.zip
+$ ./ecs-goploy --help
+```
 
 # Usage
 
