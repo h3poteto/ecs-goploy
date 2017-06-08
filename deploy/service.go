@@ -10,13 +10,13 @@ import (
 	"github.com/pkg/errors"
 )
 
-// DescribeService get current service
+// DescribeService gets a current service in the cluster.
 func (d *Deploy) DescribeService() (*ecs.Service, error) {
 	params := &ecs.DescribeServicesInput{
 		Services: []*string{
-			aws.String(d.name),
+			aws.String(d.Name),
 		},
-		Cluster: aws.String(d.cluster),
+		Cluster: aws.String(d.Cluster),
 	}
 	resp, err := d.awsECS.DescribeServices(params)
 	if err != nil {
@@ -26,11 +26,11 @@ func (d *Deploy) DescribeService() (*ecs.Service, error) {
 	return resp.Services[0], nil
 }
 
-// UpdateService update a service with a new task definition, and wait during update action
+// UpdateService updates the service with a new task definition, and wait during update action.
 func (d *Deploy) UpdateService(service *ecs.Service, taskDefinition *ecs.TaskDefinition) error {
 	params := &ecs.UpdateServiceInput{
-		Service:                 aws.String(d.name),
-		Cluster:                 aws.String(d.cluster),
+		Service:                 aws.String(d.Name),
+		Cluster:                 aws.String(d.Cluster),
 		DeploymentConfiguration: service.DeploymentConfiguration,
 		DesiredCount:            service.DesiredCount,
 		TaskDefinition:          taskDefinition.TaskDefinitionArn,
@@ -44,12 +44,12 @@ func (d *Deploy) UpdateService(service *ecs.Service, taskDefinition *ecs.TaskDef
 	if *newService.DesiredCount <= 0 {
 		return nil
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), d.timeout)
+	ctx, cancel := context.WithTimeout(context.Background(), d.Timeout)
 	defer cancel()
 	return d.waitUpdating(ctx, taskDefinition)
 }
 
-// waitUpdating wait new task is deployed.
+// waitUpdating waits the new task definition is deployed.
 func (d *Deploy) waitUpdating(ctx context.Context, newTaskDefinition *ecs.TaskDefinition) error {
 	log.Println("[INFO] Waiting for new task running...")
 	errCh := make(chan error, 1)
@@ -101,18 +101,18 @@ func (d *Deploy) checkNewTaskRunning(deployments []*ecs.Deployment, newTaskDefin
 	return false
 }
 
-// Rollback update service with current task definition
-// This method call update-service api and do not wait for execution to end
+// Rollback updates the service with current task definition.
+// This method call update-service API and does not wait for execution to end.
 func (d *Deploy) Rollback(service *ecs.Service) error {
-	if d.currentTask == nil || d.currentTask.taskDefinition == nil {
+	if d.CurrentTask == nil || d.CurrentTask.TaskDefinition == nil {
 		return errors.New("old task definition is not exist")
 	}
 	params := &ecs.UpdateServiceInput{
-		Service:                 aws.String(d.name),
-		Cluster:                 aws.String(d.cluster),
+		Service:                 aws.String(d.Name),
+		Cluster:                 aws.String(d.Cluster),
 		DeploymentConfiguration: service.DeploymentConfiguration,
 		DesiredCount:            service.DesiredCount,
-		TaskDefinition:          d.currentTask.taskDefinition.TaskDefinitionArn,
+		TaskDefinition:          d.CurrentTask.TaskDefinition.TaskDefinitionArn,
 	}
 	_, err := d.awsECS.UpdateService(params)
 	if err != nil {

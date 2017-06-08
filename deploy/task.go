@@ -5,20 +5,20 @@ import (
 	"github.com/aws/aws-sdk-go/service/ecs"
 )
 
-// Task have image and task definition information
+// Task has image and task definition information.
 type Task struct {
-	image          *Image
-	taskDefinition *ecs.TaskDefinition
+	Image          *Image
+	TaskDefinition *ecs.TaskDefinition
 }
 
-// Image have repository and tag string
+// Image has repository and tag string.
 type Image struct {
-	repository string
-	tag        string
+	Repository string
+	Tag        string
 }
 
-// TaskDefinition get a current task definition
-func (d *Deploy) TaskDefinition(service *ecs.Service) (*ecs.TaskDefinition, error) {
+// DescribeTaskDefinition gets a current task definition in a service.
+func (d *Deploy) DescribeTaskDefinition(service *ecs.Service) (*ecs.TaskDefinition, error) {
 	params := &ecs.DescribeTaskDefinitionInput{
 		TaskDefinition: aws.String(*service.TaskDefinition),
 	}
@@ -30,7 +30,8 @@ func (d *Deploy) TaskDefinition(service *ecs.Service) (*ecs.TaskDefinition, erro
 	return resp.TaskDefinition, nil
 }
 
-// RegisterTaskDefinition register new task definition if needed
+// RegisterTaskDefinition registers new task definition if needed.
+// If newTask is not set, returns a task definition which same as the given task definition.
 func (d *Deploy) RegisterTaskDefinition(baseDefinition *ecs.TaskDefinition) (*ecs.TaskDefinition, error) {
 	var containerDefinitions []*ecs.ContainerDefinition
 	for _, c := range baseDefinition.ContainerDefinitions {
@@ -57,20 +58,20 @@ func (d *Deploy) RegisterTaskDefinition(baseDefinition *ecs.TaskDefinition) (*ec
 	return resp.TaskDefinition, nil
 }
 
-// NewContainerDefinition update image tag in a given container definition.
-// If the container definition is not target container, return givien definition.
+// NewContainerDefinition updates image tag in the given container definition.
+// If the container definition is not target container, returns the givien definition.
 func (d *Deploy) NewContainerDefinition(baseDefinition *ecs.ContainerDefinition) (*ecs.ContainerDefinition, error) {
-	if d.newTask.image == nil {
+	if d.NewTask.Image == nil {
 		return baseDefinition, nil
 	}
 	baseRepository, _, err := divideImageAndTag(*baseDefinition.Image)
 	if err != nil {
 		return nil, err
 	}
-	if d.newTask.image.repository != *baseRepository {
+	if d.NewTask.Image.Repository != *baseRepository {
 		return baseDefinition, nil
 	}
-	imageWithTag := (d.newTask.image.repository) + ":" + (d.newTask.image.tag)
+	imageWithTag := (d.NewTask.Image.Repository) + ":" + (d.NewTask.Image.Tag)
 	baseDefinition.Image = &imageWithTag
 	return baseDefinition, nil
 }
