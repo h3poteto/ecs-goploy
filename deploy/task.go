@@ -17,10 +17,13 @@ type Image struct {
 	Tag        string
 }
 
-// DescribeTaskDefinition gets a current task definition in a service.
-func (d *Deploy) DescribeTaskDefinition(service *ecs.Service) (*ecs.TaskDefinition, error) {
+// DescribeTaskDefinition gets a task definition.
+// The family for the latest ACTIVE revision, family and revision (family:revision)
+// for a specific revision in the family, or full Amazon Resource Name (ARN)
+// of the task definition to describe.
+func (d *Deploy) DescribeTaskDefinition(taskDefinitionName string) (*ecs.TaskDefinition, error) {
 	params := &ecs.DescribeTaskDefinitionInput{
-		TaskDefinition: aws.String(*service.TaskDefinition),
+		TaskDefinition: aws.String(taskDefinitionName),
 	}
 	resp, err := d.awsECS.DescribeTaskDefinition(params)
 	if err != nil {
