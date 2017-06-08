@@ -7,7 +7,10 @@ Usage:
 
 Construct a new Deploy, then use deploy functions.
 
-    d := deploy.NewDeploy("cluster", "service-name", "", "", "nginx:stable", 5 * time.Minute, true)
+    d, err := deploy.NewDeploy("cluster", "service-name", "", "", "nginx:stable", 5 * time.Minute, true)
+    if err != nil {
+        log.Fatalf("[ERROR] %v", err)
+    }
 
     // deploy new image
     if err := d.Deploy(); err != nil {
@@ -18,7 +21,10 @@ Or you can write a custom deploy recipe as you like.
 
 For example:
 
-    d := deploy.NewDeploy("cluster", "service-name", "", "", "nginx:stable", nil, 5 * time.Minute, true)
+    d, err := deploy.NewDeploy("cluster", "service-name", "", "", "nginx:stable", nil, 5 * time.Minute, true)
+    if err != nil {
+        log.Fatal(err)
+    }
 
     // get the current service
     service, err := d.DescribeService()
@@ -87,7 +93,7 @@ type Deploy struct {
 
 // NewDeploy returns a new Deploy struct, and initialize aws ecs API client.
 // Separates imageWithTag into repository and tag, then sets a newTask for deploy.
-func NewDeploy(cluster, name, profile, region, imageWithTag string, baseTaskDefinition *string, timeout time.Duration, enableRollback bool) *Deploy {
+func NewDeploy(cluster, name, profile, region, imageWithTag string, baseTaskDefinition *string, timeout time.Duration, enableRollback bool) (*Deploy, error) {
 	awsECS := ecs.New(session.New(), newConfig(profile, region))
 	currentTask := &Task{}
 	newTask := &Task{}
@@ -95,7 +101,7 @@ func NewDeploy(cluster, name, profile, region, imageWithTag string, baseTaskDefi
 		var err error
 		repository, tag, err := divideImageAndTag(imageWithTag)
 		if err != nil {
-			log.Fatalf("[ERROR] Can not parse --image parameter: %+v\n", err)
+			return nil, err
 		}
 		image := &Image{
 			*repository,
@@ -115,7 +121,7 @@ func NewDeploy(cluster, name, profile, region, imageWithTag string, baseTaskDefi
 		newTask,
 		timeout,
 		enableRollback,
-	}
+	}, nil
 }
 
 // Deploy runs deploy commands and handle errors.
