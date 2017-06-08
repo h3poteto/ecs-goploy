@@ -1,3 +1,23 @@
+/*
+Package deploy provides simple functions for deploy ECS.
+
+Usage:
+
+    import "github.com/crowdworks/ecs-goploy/deploy"
+
+Construct a new Deploy, then use deploy functions.
+
+    ecsdepoy := deploy.NewDeploy("cluster", "service-name", "", "", "nginx:stable", 5 * time.Minute, true)
+
+    // deploy new image
+    if err := e.Deploy(); err != nil {
+        log.Fatalf("[ERROR] %v", err)
+    }
+
+This package is used in a command line tool, so there is an example:
+https://github.com/crowdworks/ecs-goploy/blob/master/cmd/deploy.go
+
+*/
 package deploy
 
 import (
@@ -10,18 +30,32 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Deploy have target ecs information
+// Deploy has target ECS information, client of aws-sdk-go, tasks information and timeout seconds.
 type Deploy struct {
-	awsECS         *ecs.ECS
-	cluster        string
-	name           string
-	currentTask    *Task
-	newTask        *Task
-	timeout        time.Duration
-	enableRollback bool
+	awsECS *ecs.ECS
+
+	// Name of ECS cluster.
+	Cluster string
+
+	// Name of ECS service.
+	Name string
+
+	// Running task information which contains a task definition.
+	CurrentTask *Task
+
+	// Task information which will deploy.
+	NewTask *Task
+
+	// Wait time when update service.
+	// This script monitors ECS service for new task definition to be running after call update service API.
+	Timeout time.Duration
+
+	// If deploy failed, rollback to current task definition.
+	EnableRollback bool
 }
 
-// NewDeploy return a new Deploy struct, and initialize aws ecs api client
+// NewDeploy returns a new Deploy struct, and initialize aws ecs API client.
+// Separates imageWithTag into repository and tag, then sets a newTask for deploy.
 func NewDeploy(cluster, name, profile, region, imageWithTag string, timeout time.Duration, enableRollback bool) *Deploy {
 	awsECS := ecs.New(session.New(), newConfig(profile, region))
 	currentTask := &Task{}
@@ -37,8 +71,8 @@ func NewDeploy(cluster, name, profile, region, imageWithTag string, timeout time
 			*tag,
 		}
 		newTask = &Task{
-			image:          image,
-			taskDefinition: nil,
+			Image:          image,
+			TaskDefinition: nil,
 		}
 	}
 	return &Deploy{
@@ -52,33 +86,33 @@ func NewDeploy(cluster, name, profile, region, imageWithTag string, timeout time
 	}
 }
 
-// Deploy run deploy commands
+// Deploy runs deploy commands and handle errors.
 func (d *Deploy) Deploy() error {
 	service, err := d.DescribeService()
 	if err != nil {
 		return errors.Wrap(err, "Can not get current service: ")
 	}
-	taskDefinition, err := d.TaskDefinition(service)
+	taskDefinition, err := d.DescribeTaskDefinition(service)
 	if err != nil {
 		return errors.Wrap(err, "Can not get current task definition: ")
 	}
-	d.currentTask.taskDefinition = taskDefinition
+	d.CurrentTask.TaskDefinition = taskDefinition
 
 	newTaskDefinition, err := d.RegisterTaskDefinition(taskDefinition)
 	if err != nil {
 		return errors.Wrap(err, "Can not regist new task definition: ")
 	}
-	d.newTask.taskDefinition = newTaskDefinition
+	d.NewTask.TaskDefinition = newTaskDefinition
 	log.Printf("[INFO] new task definition: %+v\n", newTaskDefinition)
 
 	err = d.UpdateService(service, newTaskDefinition)
 	if err != nil {
 		log.Println("[INFO] update failed")
 		updateError := errors.Wrap(err, "Can not update service: ")
-		if !d.enableRollback {
+		if !d.EnableRollback {
 			return updateError
 		}
-		log.Printf("[INFO] Rolling back to: %+v\n", d.currentTask.taskDefinition)
+		log.Printf("[INFO] Rolling back to: %+v\n", d.CurrentTask.TaskDefinition)
 		if err := d.Rollback(service); err != nil {
 			return errors.Wrap(updateError, err.Error())
 		}
@@ -87,6 +121,7 @@ func (d *Deploy) Deploy() error {
 	return nil
 }
 
+// divideImageAndTag separates imageWithTag into repository and tag.
 func divideImageAndTag(imageWithTag string) (*string, *string, error) {
 	res := strings.Split(imageWithTag, ":")
 	if len(res) >= 3 {

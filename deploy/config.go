@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/defaults"
 )
 
+// newConfig returns a new aws config
 func newConfig(profile string, region string) *aws.Config {
 	defaultConfig := defaults.Get().Config
 	cred := newCredentials(getenv(profile, "AWS_DEFAULT_PROFILE"), getenv(region, "AWS_DEFAULT_REGION"))
