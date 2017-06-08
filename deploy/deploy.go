@@ -18,7 +18,7 @@ Or you can write a custom deploy recipe as you like.
 
 For example:
 
-    d := deploy.NewDeploy("cluster", "service-name", "", "", "nginx:stable", 5 * time.Minute, true)
+    d := deploy.NewDeploy("cluster", "service-name", "", "", "nginx:stable", nil, 5 * time.Minute, true)
 
     // get the current service
     service, err := d.DescribeService()
@@ -132,6 +132,7 @@ func (d *Deploy) Deploy() error {
 	}
 	d.CurrentTask.TaskDefinition = taskDefinition
 
+	// get base task definition if needed
 	baseTaskDefinition := taskDefinition
 	if d.BaseTaskDefinition != nil {
 		var err error
@@ -155,6 +156,8 @@ func (d *Deploy) Deploy() error {
 		if !d.EnableRollback {
 			return updateError
 		}
+
+		// rollback to the current task definition which have been running to the end
 		log.Printf("[INFO] Rolling back to: %+v\n", d.CurrentTask.TaskDefinition)
 		if err := d.Rollback(service); err != nil {
 			return errors.Wrap(updateError, err.Error())

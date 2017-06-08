@@ -47,14 +47,15 @@ Usage:
   ecs-goploy deploy [flags]
 
 Flags:
-  -c, --cluster string        Name of ECS cluster
-      --enable-rollback       Rollback task definition if new version is not running before TIMEOUT
-  -h, --help                  help for deploy
-  -i, --image string          Name of Docker image to run, ex: repo/image:latest
-  -p, --profile string        AWS Profile to use
-  -r, --region string         AWS Region Name
-  -n, --service-name string   Name of service to deploy
-  -t, --timeout int           Timeout seconds. Script monitors ECS Service for new task definition to be running (default 300)
+  -c, --cluster string           Name of ECS cluster
+      --enable-rollback          Rollback task definition if new version is not running before TIMEOUT
+  -h, --help                     help for deploy
+  -i, --image string             Name of Docker image to run, ex: repo/image:latest
+  -p, --profile string           AWS Profile to use
+  -r, --region string            AWS Region Name
+  -n, --service-name string      Name of service to deploy
+  -d, --task-definition string   Name of base task definition to deploy. Family and revision (family:revision) or full ARN
+  -t, --timeout int              Timeout seconds. Script monitors ECS Service for new task definition to be running (default 300)
 ```
 
 # Configuration
@@ -82,4 +83,3 @@ AWS region can be set command argument: `--region`.
 
 # TODO
 - [ ] Tests
-- [ ] Deploy when a task definition is provided in command argument: `--task-definition`
