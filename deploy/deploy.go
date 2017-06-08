@@ -68,6 +68,9 @@ type Deploy struct {
 	// Name of ECS service.
 	Name string
 
+	// Name of base task definition of deploy.
+	BaseTaskDefinition *string
+
 	// Running task information which contains a task definition.
 	CurrentTask *Task
 
@@ -84,7 +87,7 @@ type Deploy struct {
 
 // NewDeploy returns a new Deploy struct, and initialize aws ecs API client.
 // Separates imageWithTag into repository and tag, then sets a newTask for deploy.
-func NewDeploy(cluster, name, profile, region, imageWithTag string, timeout time.Duration, enableRollback bool) *Deploy {
+func NewDeploy(cluster, name, profile, region, imageWithTag string, baseTaskDefinition *string, timeout time.Duration, enableRollback bool) *Deploy {
 	awsECS := ecs.New(session.New(), newConfig(profile, region))
 	currentTask := &Task{}
 	newTask := &Task{}
@@ -107,6 +110,7 @@ func NewDeploy(cluster, name, profile, region, imageWithTag string, timeout time
 		awsECS,
 		cluster,
 		name,
+		baseTaskDefinition,
 		currentTask,
 		newTask,
 		timeout,
@@ -120,13 +124,24 @@ func (d *Deploy) Deploy() error {
 	if err != nil {
 		return errors.Wrap(err, "Can not get current service: ")
 	}
-	taskDefinition, err := d.DescribeTaskDefinition(service)
+
+	// get running task definition
+	taskDefinition, err := d.DescribeTaskDefinition(*service.TaskDefinition)
 	if err != nil {
-		return errors.Wrap(err, "Can not get current task definition: ")
+		return errors.Wrap(err, "Can not get task definition: ")
 	}
 	d.CurrentTask.TaskDefinition = taskDefinition
 
-	newTaskDefinition, err := d.RegisterTaskDefinition(taskDefinition)
+	baseTaskDefinition := taskDefinition
+	if d.BaseTaskDefinition != nil {
+		var err error
+		baseTaskDefinition, err = d.DescribeTaskDefinition(*d.BaseTaskDefinition)
+		if err != nil {
+			return errors.Wrap(err, "Can not get task definition: ")
+		}
+	}
+
+	newTaskDefinition, err := d.RegisterTaskDefinition(baseTaskDefinition)
 	if err != nil {
 		return errors.Wrap(err, "Can not regist new task definition: ")
 	}
