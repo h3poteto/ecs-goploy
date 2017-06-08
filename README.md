@@ -1,6 +1,7 @@
 # ecs-goploy
-[![GoDoc](https://godoc.org/github.com/crowdworks/ecs-goploy/deploy?status.svg)](https://godoc.org/github.com/crowdworks/ecs-goploy/deploy)
 [![CircleCI](https://circleci.com/gh/crowdworks/ecs-goploy.svg?style=svg)](https://circleci.com/gh/crowdworks/ecs-goploy)
+[![GitHub release](http://img.shields.io/github/release/crowdworks/ecs-goploy.svg?style=flat-square)](https://github.com/crowdworks/ecs-goploy/releases)
+[![GoDoc](https://godoc.org/github.com/crowdworks/ecs-goploy/deploy?status.svg)](https://godoc.org/github.com/crowdworks/ecs-goploy/deploy)
 
 `ecs-goploy` is a re-implementation of [ecs-deploy](https://github.com/silinternational/ecs-deploy) in Golang.
 
