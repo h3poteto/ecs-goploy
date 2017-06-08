@@ -7,7 +7,7 @@ Usage:
 
 Construct a new Deploy, then use deploy functions.
 
-    d, err := deploy.NewDeploy("cluster", "service-name", "", "", "nginx:stable", 5 * time.Minute, true)
+    d, err := deploy.NewDeploy("cluster", "service-name", "", "", "nginx:stable", nil, 5 * time.Minute, true)
     if err != nil {
         log.Fatalf("[ERROR] %v", err)
     }
