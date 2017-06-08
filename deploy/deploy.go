@@ -7,15 +7,43 @@ Usage:
 
 Construct a new Deploy, then use deploy functions.
 
-    ecsdepoy := deploy.NewDeploy("cluster", "service-name", "", "", "nginx:stable", 5 * time.Minute, true)
+    d := deploy.NewDeploy("cluster", "service-name", "", "", "nginx:stable", 5 * time.Minute, true)
 
     // deploy new image
-    if err := e.Deploy(); err != nil {
+    if err := d.Deploy(); err != nil {
         log.Fatalf("[ERROR] %v", err)
     }
 
-This package is used in a command line tool, so there is an example:
-https://github.com/crowdworks/ecs-goploy/blob/master/cmd/deploy.go
+Or you can write a custom deploy recipe as you like.
+
+For example:
+
+    d := deploy.NewDeploy("cluster", "service-name", "", "", "nginx:stable", 5 * time.Minute, true)
+
+    // get the current service
+    service, err := d.DescribeService()
+    if err != nil {
+        log.Fatal(err)
+    }
+    taskDefinition, err := d.DescribeTaskDefinition(service)
+    if err != nil {
+        log.Fatal(err)
+    }
+    d.CurrentTask.TaskDefinition = taskDefinition
+
+    newTaskDefinition, err := d.RegisterTaskDefinition(taskDefinition)
+    if err != nil {
+        log.Fatal(err)
+    }
+    d.NewTask.TaskDefinition = newTaskDefinition
+
+    // Do something
+
+    err = d.UpdateService(service, newTaskDefinition)
+    if err != nil {
+        // Do something
+    }
+    log.Println("[INFO] Deploy success")
 
 */
 package deploy
