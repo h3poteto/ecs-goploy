@@ -10,6 +10,7 @@ import (
 	"github.com/pkg/errors"
 )
 
+// RunTask calls run-task API.
 func (d *Deploy) RunTask(taskDefinition *ecs.TaskDefinition, timeout time.Duration) error {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
@@ -26,6 +27,7 @@ func (d *Deploy) RunTask(taskDefinition *ecs.TaskDefinition, timeout time.Durati
 	return d.waitRunning(ctx, resp.Tasks)
 }
 
+// waitRunning waits a task running.
 func (d *Deploy) waitRunning(ctx context.Context, tasks []*ecs.Task) error {
 	log.Println("[INFO] Waiting for running task...")
 

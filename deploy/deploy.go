@@ -183,6 +183,7 @@ func divideImageAndTag(imageWithTag string) (*string, *string, error) {
 
 }
 
+// Task regists new task definition and run task on ECS.
 func (d *Deploy) Task() error {
 	if d.BaseTaskDefinition == nil {
 		return errors.New("task definition is required")
