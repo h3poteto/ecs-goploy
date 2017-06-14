@@ -78,10 +78,10 @@ type Deploy struct {
 	BaseTaskDefinition *string
 
 	// Running task information which contains a task definition.
-	CurrentTask *Task
+	CurrentTask *TaskDefinition
 
 	// Task information which will deploy.
-	NewTask *Task
+	NewTask *TaskDefinition
 
 	// Wait time when update service.
 	// This script monitors ECS service for new task definition to be running after call update service API.
@@ -95,8 +95,8 @@ type Deploy struct {
 // Separates imageWithTag into repository and tag, then sets a newTask for deploy.
 func NewDeploy(cluster, name, profile, region, imageWithTag string, baseTaskDefinition *string, timeout time.Duration, enableRollback bool) (*Deploy, error) {
 	awsECS := ecs.New(session.New(), newConfig(profile, region))
-	currentTask := &Task{}
-	newTask := &Task{}
+	currentTask := &TaskDefinition{}
+	newTask := &TaskDefinition{}
 	if len(imageWithTag) > 0 {
 		var err error
 		repository, tag, err := divideImageAndTag(imageWithTag)
@@ -107,7 +107,7 @@ func NewDeploy(cluster, name, profile, region, imageWithTag string, baseTaskDefi
 			*repository,
 			*tag,
 		}
-		newTask = &Task{
+		newTask = &TaskDefinition{
 			Image:          image,
 			TaskDefinition: nil,
 		}
@@ -181,4 +181,26 @@ func divideImageAndTag(imageWithTag string) (*string, *string, error) {
 	}
 	return &res[0], &res[1], nil
 
+}
+
+func (d *Deploy) Task() error {
+	if d.BaseTaskDefinition == nil {
+		return errors.New("task definition is required")
+	}
+	// get a task definition
+	baseTaskDefinition, err := d.DescribeTaskDefinition(*d.BaseTaskDefinition)
+	if err != nil {
+		return err
+	}
+	// add new task definition to run task
+	newTaskDefinition, err := d.RegisterTaskDefinition(baseTaskDefinition)
+	if err != nil {
+		return nil
+	}
+	log.Printf("[INFO] New task definition: %+v\n", newTaskDefinition)
+
+	if err := d.RunTask(newTaskDefinition, d.Timeout); err != nil {
+		return err
+	}
+	return nil
 }

@@ -1,80 +1,101 @@
 package deploy
 
 import (
+	"context"
+	"log"
+	"time"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ecs"
+	"github.com/pkg/errors"
 )
 
-// Task has image and task definition information.
-type Task struct {
-	Image          *Image
-	TaskDefinition *ecs.TaskDefinition
-}
+func (d *Deploy) RunTask(taskDefinition *ecs.TaskDefinition, timeout time.Duration) error {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
 
-// Image has repository and tag string.
-type Image struct {
-	Repository string
-	Tag        string
-}
-
-// DescribeTaskDefinition gets a task definition.
-// The family for the latest ACTIVE revision, family and revision (family:revision)
-// for a specific revision in the family, or full Amazon Resource Name (ARN)
-// of the task definition to describe.
-func (d *Deploy) DescribeTaskDefinition(taskDefinitionName string) (*ecs.TaskDefinition, error) {
-	params := &ecs.DescribeTaskDefinitionInput{
-		TaskDefinition: aws.String(taskDefinitionName),
+	params := &ecs.RunTaskInput{
+		Cluster:        aws.String(d.Cluster),
+		TaskDefinition: taskDefinition.TaskDefinitionArn,
 	}
-	resp, err := d.awsECS.DescribeTaskDefinition(params)
+	resp, err := d.awsECS.RunTaskWithContext(ctx, params)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return resp.TaskDefinition, nil
+	return d.waitRunning(ctx, resp.Tasks)
 }
 
-// RegisterTaskDefinition registers new task definition if needed.
-// If newTask is not set, returns a task definition which same as the given task definition.
-func (d *Deploy) RegisterTaskDefinition(baseDefinition *ecs.TaskDefinition) (*ecs.TaskDefinition, error) {
-	var containerDefinitions []*ecs.ContainerDefinition
-	for _, c := range baseDefinition.ContainerDefinitions {
-		newDefinition, err := d.NewContainerDefinition(c)
+func (d *Deploy) waitRunning(ctx context.Context, tasks []*ecs.Task) error {
+	log.Println("[INFO] Waiting for running task...")
+
+	taskArns := []*string{}
+	for _, t := range tasks {
+		taskArns = append(taskArns, t.TaskArn)
+	}
+	errCh := make(chan error, 1)
+	done := make(chan struct{}, 1)
+	go func() {
+		err := d.waitExitTasks(taskArns)
 		if err != nil {
-			return nil, err
+			errCh <- err
 		}
-		containerDefinitions = append(containerDefinitions, newDefinition)
-	}
-	params := &ecs.RegisterTaskDefinitionInput{
-		ContainerDefinitions: containerDefinitions,
-		Family:               baseDefinition.Family,
-		NetworkMode:          baseDefinition.NetworkMode,
-		PlacementConstraints: baseDefinition.PlacementConstraints,
-		TaskRoleArn:          baseDefinition.TaskRoleArn,
-		Volumes:              baseDefinition.Volumes,
-	}
-
-	resp, err := d.awsECS.RegisterTaskDefinition(params)
-	if err != nil {
-		return nil, err
+		close(done)
+	}()
+	select {
+	case err := <-errCh:
+		if err != nil {
+			return err
+		}
+	case <-done:
+		log.Println("[INFO] Run task is success")
+	case <-ctx.Done():
+		return errors.New("process timeout")
 	}
 
-	return resp.TaskDefinition, nil
+	return nil
 }
 
-// NewContainerDefinition updates image tag in the given container definition.
-// If the container definition is not target container, returns the givien definition.
-func (d *Deploy) NewContainerDefinition(baseDefinition *ecs.ContainerDefinition) (*ecs.ContainerDefinition, error) {
-	if d.NewTask.Image == nil {
-		return baseDefinition, nil
+func (d *Deploy) waitExitTasks(taskArns []*string) error {
+	for {
+		time.Sleep(5 * time.Second)
+
+		params := &ecs.DescribeTasksInput{
+			Cluster: aws.String(d.Cluster),
+			Tasks:   taskArns,
+		}
+		resp, err := d.awsECS.DescribeTasks(params)
+		if err != nil {
+			return err
+		}
+
+		for _, t := range resp.Tasks {
+			if !d.checkTaskStopped(t) {
+				continue
+			}
+		}
+
+		for _, t := range resp.Tasks {
+			if !d.checkTaskSucceeded(t) {
+				return errors.New("exit code is not zero")
+			}
+		}
+		return nil
 	}
-	baseRepository, _, err := divideImageAndTag(*baseDefinition.Image)
-	if err != nil {
-		return nil, err
+}
+
+func (d *Deploy) checkTaskStopped(task *ecs.Task) bool {
+	if *task.DesiredStatus != "STOPPED" {
+		return false
 	}
-	if d.NewTask.Image.Repository != *baseRepository {
-		return baseDefinition, nil
+	return true
+}
+
+func (d *Deploy) checkTaskSucceeded(task *ecs.Task) bool {
+	for _, c := range task.Containers {
+		if *c.ExitCode != int64(0) {
+			return false
+		}
 	}
-	imageWithTag := (d.NewTask.Image.Repository) + ":" + (d.NewTask.Image.Tag)
-	baseDefinition.Image = &imageWithTag
-	return baseDefinition, nil
+	return true
 }
