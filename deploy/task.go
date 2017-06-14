@@ -3,6 +3,7 @@ package deploy
 import (
 	"context"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -11,21 +12,36 @@ import (
 	"github.com/pkg/errors"
 )
 
+// Task has target ECS information, client of aws-sdk-go, command and timeout seconds.
 type Task struct {
 	awsECS *ecs.ECS
 
+	// Name of ECS cluster.
 	Cluster string
 
+	// Name of the container for override task definition.
+	Name string
+
+	// Name of base task definition for run task.
 	BaseTaskDefinition *string
 
+	// TaskDefinition struct to call aws API.
 	TaskDefinition *TaskDefinition
 
+	// New image for deploy.
 	NewImage *Image
 
+	// Task command which run on ECS.
+	Command []*string
+
+	// Wait time when run task.
+	// This script monitors ECS task for new task definition to be running after call run task API.
 	Timeout time.Duration
 }
 
-func NewTask(cluster, imageWithTag string, baseTaskDefinition *string, timeout time.Duration, profile, region string) (*Task, error) {
+// NewTask returns a new Task struct, and initialize aws ecs API client.
+// Separates imageWithTag into repository and tag, then set NewImage for deploy.
+func NewTask(cluster, name, imageWithTag, command string, baseTaskDefinition *string, timeout time.Duration, profile, region string) (*Task, error) {
 	if baseTaskDefinition == nil {
 		return nil, errors.New("task definition is required")
 	}
@@ -43,13 +59,21 @@ func NewTask(cluster, imageWithTag string, baseTaskDefinition *string, timeout t
 			*tag,
 		}
 	}
+	commands := strings.Split(command, " ")
+	var cmd []*string
+	for _, c := range commands {
+		cmd = append(cmd, aws.String(c))
+	}
+
 	return &Task{
-		awsECS,
-		cluster,
-		baseTaskDefinition,
-		taskDefinition,
-		newImage,
-		timeout,
+		awsECS:             awsECS,
+		Cluster:            cluster,
+		Name:               name,
+		BaseTaskDefinition: baseTaskDefinition,
+		TaskDefinition:     taskDefinition,
+		NewImage:           newImage,
+		Command:            cmd,
+		Timeout:            timeout,
 	}, nil
 }
 
@@ -58,14 +82,27 @@ func (t *Task) RunTask(taskDefinition *ecs.TaskDefinition, timeout time.Duration
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
+	containerOverride := &ecs.ContainerOverride{
+		Command: t.Command,
+		Name:    aws.String(t.Name),
+	}
+
+	override := &ecs.TaskOverride{
+		ContainerOverrides: []*ecs.ContainerOverride{
+			containerOverride,
+		},
+	}
+
 	params := &ecs.RunTaskInput{
 		Cluster:        aws.String(t.Cluster),
 		TaskDefinition: taskDefinition.TaskDefinitionArn,
+		Overrides:      override,
 	}
 	resp, err := t.awsECS.RunTaskWithContext(ctx, params)
 	if err != nil {
 		return err
 	}
+	log.Printf("[INFO] Running tasks: %+v\n", resp.Tasks)
 
 	return t.waitRunning(ctx, resp.Tasks)
 }
@@ -121,8 +158,8 @@ func (t *Task) waitExitTasks(taskArns []*string) error {
 		}
 
 		for _, task := range resp.Tasks {
-			if !t.checkTaskSucceeded(task) {
-				return errors.New("exit code is not zero")
+			if code, result := t.checkTaskSucceeded(task); !result {
+				return errors.Errorf("exit code: %v", code)
 			}
 		}
 		return nil
@@ -136,11 +173,11 @@ func (t *Task) checkTaskStopped(task *ecs.Task) bool {
 	return true
 }
 
-func (t *Task) checkTaskSucceeded(task *ecs.Task) bool {
+func (t *Task) checkTaskSucceeded(task *ecs.Task) (int64, bool) {
 	for _, c := range task.Containers {
 		if *c.ExitCode != int64(0) {
-			return false
+			return *c.ExitCode, false
 		}
 	}
-	return true
+	return int64(0), true
 }

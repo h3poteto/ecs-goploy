@@ -24,8 +24,10 @@ type Service struct {
 	// Name of base task definition of deploy.
 	BaseTaskDefinition *string
 
+	// TaskDefinition struct to call aws API.
 	TaskDefinition *TaskDefinition
 
+	// New image for deploy.
 	NewImage *Image
 
 	// Wait time when update service.
@@ -37,7 +39,7 @@ type Service struct {
 }
 
 // NewService returns a new Service struct, and initialize aws ecs API client.
-// Separates imageWithTag into repository and tag, then sets a newTask for deploy.
+// Separates imageWithTag into repository and tag, then sets a NewImage for deploy.
 func NewService(cluster, name, imageWithTag string, baseTaskDefinition *string, timeout time.Duration, enableRollback bool, profile, region string) (*Service, error) {
 	awsECS := ecs.New(session.New(), newConfig(profile, region))
 	taskDefinition := NewTaskDefinition(profile, region)

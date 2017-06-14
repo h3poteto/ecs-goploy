@@ -5,15 +5,15 @@ Usage:
 
     import "github.com/crowdworks/ecs-goploy/deploy"
 
-Construct a new Deploy, then use deploy functions.
+Construct a new Service, then use deploy functions.
 
-    d, err := deploy.NewDeploy("cluster", "service-name", "", "", "nginx:stable", nil, 5 * time.Minute, true)
+    s, err := deploy.NewDeploy("cluster", "service-name", "nginx:stable", nil, 5 * time.Minute, true, "", "")
     if err != nil {
         log.Fatalf("[ERROR] %v", err)
     }
 
     // deploy new image
-    if err := d.Deploy(); err != nil {
+    if err := s.Deploy(); err != nil {
         log.Fatalf("[ERROR] %v", err)
     }
 
@@ -21,31 +21,29 @@ Or you can write a custom deploy recipe as you like.
 
 For example:
 
-    d, err := deploy.NewDeploy("cluster", "service-name", "", "", "nginx:stable", nil, 5 * time.Minute, true)
+    s, err := deploy.NewDeploy("cluster", "service-name", "nginx:stable", nil, 5 * time.Minute, true, "", "")
     if err != nil {
         log.Fatal(err)
     }
 
     // get the current service
-    service, err := d.DescribeService()
+    service, err := s.DescribeService()
     if err != nil {
         log.Fatal(err)
     }
-    taskDefinition, err := d.DescribeTaskDefinition(service)
+    currentTaskDefinition, err := s.TaskDefinition.DescribeTaskDefinition(service)
     if err != nil {
         log.Fatal(err)
     }
-    d.CurrentTask.TaskDefinition = taskDefinition
 
-    newTaskDefinition, err := d.RegisterTaskDefinition(taskDefinition)
+    newTaskDefinition, err := s.RegisterTaskDefinition(currentTaskDefinition, s.NewImage)
     if err != nil {
         log.Fatal(err)
     }
-    d.NewTask.TaskDefinition = newTaskDefinition
 
     // Do something
 
-    err = d.UpdateService(service, newTaskDefinition)
+    err = s.UpdateService(service, newTaskDefinition)
     if err != nil {
         // Do something
     }
@@ -94,7 +92,7 @@ func (s *Service) Deploy() error {
 	if err != nil {
 		return errors.Wrap(err, "Can not regist new task definition: ")
 	}
-	log.Printf("[INFO] new task definition: %+v\n", newTaskDefinition)
+	log.Printf("[INFO] New task definition: %+v\n", newTaskDefinition)
 
 	err = s.UpdateService(service, newTaskDefinition)
 	if err != nil {
