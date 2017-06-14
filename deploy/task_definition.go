@@ -11,6 +11,7 @@ type TaskDefinition struct {
 	awsECS *ecs.ECS
 }
 
+// NewTaskDefinition initializes aws ecs API client, and returns a task definition struct.
 func NewTaskDefinition(profile, region string) *TaskDefinition {
 	awsECS := ecs.New(session.New(), newConfig(profile, region))
 	return &TaskDefinition{

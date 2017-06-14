@@ -5,9 +5,13 @@ Usage:
 
     import "github.com/crowdworks/ecs-goploy/deploy"
 
+Service update
+
+When you want to update service in ECS, please use this package as follows.
+
 Construct a new Service, then use deploy functions.
 
-    s, err := deploy.NewDeploy("cluster", "service-name", "nginx:stable", nil, 5 * time.Minute, true, "", "")
+    s, err := deploy.NewService("cluster", "service-name", "nginx:stable", nil, 5 * time.Minute, true, "", "")
     if err != nil {
         log.Fatalf("[ERROR] %v", err)
     }
@@ -21,7 +25,7 @@ Or you can write a custom deploy recipe as you like.
 
 For example:
 
-    s, err := deploy.NewDeploy("cluster", "service-name", "nginx:stable", nil, 5 * time.Minute, true, "", "")
+    s, err := deploy.NewService("cluster", "service-name", "nginx:stable", nil, 5 * time.Minute, true, "", "")
     if err != nil {
         log.Fatal(err)
     }
@@ -49,6 +53,21 @@ For example:
     }
     log.Println("[INFO] Deploy success")
 
+Run task
+
+When you want to run task on ECS at once, plese use this package as follows.
+
+For example:
+
+    task, err := ecsdeploy.NewTask("cluster", "container-name", "nginx:stable", "echo hoge", "sample-task-definition:1", (5 * time.Minute), "", "")
+    if err != nil {
+        log.Fatal(err)
+    }
+    if err := task.Run(); err != nil {
+        log.Fatal(err)
+    }
+    log.Println("[INFO] Task success")
+
 */
 package deploy
 
@@ -59,10 +78,14 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Image has repository and tag string.
+// Image has repository and tag string of docker image.
 type Image struct {
+
+	// Docker image repository.
 	Repository string
-	Tag        string
+
+	// Docker image tag.
+	Tag string
 }
 
 // Deploy runs deploy commands and handle errors.
