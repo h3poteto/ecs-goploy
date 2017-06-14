@@ -23,7 +23,7 @@ func taskCmd() *cobra.Command {
 	t := &task{}
 	cmd := &cobra.Command{
 		Use:   "task",
-		Short: "Run ECS task",
+		Short: "Run task on ECS",
 		Run:   t.task,
 	}
 
