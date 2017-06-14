@@ -16,8 +16,8 @@ Please check [godoc](https://godoc.org/github.com/crowdworks/ecs-goploy/deploy).
 Get binary from github:
 
 ```
-$ wget https://github.com/crowdworks/ecs-goploy/releases/download/v0.1.0/ecs-goploy_v0.1.0_linux_amd64.zip
-$ unzip ecs-goploy_v0.1.0_linux_amd64.zip
+$ wget https://github.com/crowdworks/ecs-goploy/releases/download/v0.2.0/ecs-goploy_v0.2.0_linux_amd64.zip
+$ unzip ecs-goploy_v0.2.0_linux_amd64.zip
 $ ./ecs-goploy --help
 ```
 
@@ -31,8 +31,9 @@ Usage:
   ecs-goploy [command]
 
 Available Commands:
-  deploy      Deploy ECS
   help        Help about any command
+  service     Service deploy to ECS
+  task        Run task on ECS
   version     Print the version number
 
 Flags:
@@ -40,22 +41,39 @@ Flags:
 
 Use "ecs-goploy [command] --help" for more information about a command.
 
-$ ./ecs-goploy deploy --help
-Deploy ECS
+$ ./ecs-goploy service --help
+Service deploy to ECS
 
 Usage:
-  ecs-goploy deploy [flags]
+  ecs-goploy service [flags]
 
 Flags:
   -c, --cluster string           Name of ECS cluster
       --enable-rollback          Rollback task definition if new version is not running before TIMEOUT
-  -h, --help                     help for deploy
+  -h, --help                     help for service
   -i, --image string             Name of Docker image to run, ex: repo/image:latest
   -p, --profile string           AWS Profile to use
   -r, --region string            AWS Region Name
   -n, --service-name string      Name of service to deploy
   -d, --task-definition string   Name of base task definition to deploy. Family and revision (family:revision) or full ARN
   -t, --timeout int              Timeout seconds. Script monitors ECS Service for new task definition to be running (default 300)
+
+$ ./ecs-goploy task --help                                                                                                                                                              [master]
+Run task on ECS
+
+Usage:
+  ecs-goploy task [flags]
+
+Flags:
+  -c, --cluster string           Name of ECS cluster
+      --command string           Task command which run on ECS
+  -n, --container-name string    Name of the container for override task definition
+  -h, --help                     help for task
+  -i, --image string             Name of Doker image to run, ex: repo/image:latest
+  -p, --profile string           AWS Profile to use
+  -r, --region string            AWS Region Name
+  -d, --task-definition string   Name of base task definition to run task. Family and revision (family:revision) or full ARN
+  -t, --timeout int              Timeout seconds (default 300)
 ```
 
 # Configuration
