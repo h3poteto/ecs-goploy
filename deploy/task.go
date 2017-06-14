@@ -1,80 +1,183 @@
 package deploy
 
 import (
+	"context"
+	"log"
+	"strings"
+	"time"
+
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ecs"
+	"github.com/pkg/errors"
 )
 
-// Task has image and task definition information.
+// Task has target ECS information, client of aws-sdk-go, command and timeout seconds.
 type Task struct {
-	Image          *Image
-	TaskDefinition *ecs.TaskDefinition
+	awsECS *ecs.ECS
+
+	// Name of ECS cluster.
+	Cluster string
+
+	// Name of the container for override task definition.
+	Name string
+
+	// Name of base task definition for run task.
+	BaseTaskDefinition *string
+
+	// TaskDefinition struct to call aws API.
+	TaskDefinition *TaskDefinition
+
+	// New image for deploy.
+	NewImage *Image
+
+	// Task command which run on ECS.
+	Command []*string
+
+	// Wait time when run task.
+	// This script monitors ECS task for new task definition to be running after call run task API.
+	Timeout time.Duration
 }
 
-// Image has repository and tag string.
-type Image struct {
-	Repository string
-	Tag        string
-}
-
-// DescribeTaskDefinition gets a task definition.
-// The family for the latest ACTIVE revision, family and revision (family:revision)
-// for a specific revision in the family, or full Amazon Resource Name (ARN)
-// of the task definition to describe.
-func (d *Deploy) DescribeTaskDefinition(taskDefinitionName string) (*ecs.TaskDefinition, error) {
-	params := &ecs.DescribeTaskDefinitionInput{
-		TaskDefinition: aws.String(taskDefinitionName),
+// NewTask returns a new Task struct, and initialize aws ecs API client.
+// Separates imageWithTag into repository and tag, then set NewImage for deploy.
+func NewTask(cluster, name, imageWithTag, command string, baseTaskDefinition *string, timeout time.Duration, profile, region string) (*Task, error) {
+	if baseTaskDefinition == nil {
+		return nil, errors.New("task definition is required")
 	}
-	resp, err := d.awsECS.DescribeTaskDefinition(params)
-	if err != nil {
-		return nil, err
-	}
-
-	return resp.TaskDefinition, nil
-}
-
-// RegisterTaskDefinition registers new task definition if needed.
-// If newTask is not set, returns a task definition which same as the given task definition.
-func (d *Deploy) RegisterTaskDefinition(baseDefinition *ecs.TaskDefinition) (*ecs.TaskDefinition, error) {
-	var containerDefinitions []*ecs.ContainerDefinition
-	for _, c := range baseDefinition.ContainerDefinitions {
-		newDefinition, err := d.NewContainerDefinition(c)
+	awsECS := ecs.New(session.New(), newConfig(profile, region))
+	taskDefinition := NewTaskDefinition(profile, region)
+	var newImage *Image
+	if len(imageWithTag) > 0 {
+		var err error
+		repository, tag, err := divideImageAndTag(imageWithTag)
 		if err != nil {
 			return nil, err
 		}
-		containerDefinitions = append(containerDefinitions, newDefinition)
+		newImage = &Image{
+			*repository,
+			*tag,
+		}
 	}
-	params := &ecs.RegisterTaskDefinitionInput{
-		ContainerDefinitions: containerDefinitions,
-		Family:               baseDefinition.Family,
-		NetworkMode:          baseDefinition.NetworkMode,
-		PlacementConstraints: baseDefinition.PlacementConstraints,
-		TaskRoleArn:          baseDefinition.TaskRoleArn,
-		Volumes:              baseDefinition.Volumes,
-	}
-
-	resp, err := d.awsECS.RegisterTaskDefinition(params)
-	if err != nil {
-		return nil, err
+	commands := strings.Split(command, " ")
+	var cmd []*string
+	for _, c := range commands {
+		cmd = append(cmd, aws.String(c))
 	}
 
-	return resp.TaskDefinition, nil
+	return &Task{
+		awsECS:             awsECS,
+		Cluster:            cluster,
+		Name:               name,
+		BaseTaskDefinition: baseTaskDefinition,
+		TaskDefinition:     taskDefinition,
+		NewImage:           newImage,
+		Command:            cmd,
+		Timeout:            timeout,
+	}, nil
 }
 
-// NewContainerDefinition updates image tag in the given container definition.
-// If the container definition is not target container, returns the givien definition.
-func (d *Deploy) NewContainerDefinition(baseDefinition *ecs.ContainerDefinition) (*ecs.ContainerDefinition, error) {
-	if d.NewTask.Image == nil {
-		return baseDefinition, nil
+// RunTask calls run-task API.
+func (t *Task) RunTask(taskDefinition *ecs.TaskDefinition, timeout time.Duration) error {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	containerOverride := &ecs.ContainerOverride{
+		Command: t.Command,
+		Name:    aws.String(t.Name),
 	}
-	baseRepository, _, err := divideImageAndTag(*baseDefinition.Image)
+
+	override := &ecs.TaskOverride{
+		ContainerOverrides: []*ecs.ContainerOverride{
+			containerOverride,
+		},
+	}
+
+	params := &ecs.RunTaskInput{
+		Cluster:        aws.String(t.Cluster),
+		TaskDefinition: taskDefinition.TaskDefinitionArn,
+		Overrides:      override,
+	}
+	resp, err := t.awsECS.RunTaskWithContext(ctx, params)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	if d.NewTask.Image.Repository != *baseRepository {
-		return baseDefinition, nil
+	log.Printf("[INFO] Running tasks: %+v\n", resp.Tasks)
+
+	return t.waitRunning(ctx, resp.Tasks)
+}
+
+// waitRunning waits a task running.
+func (t *Task) waitRunning(ctx context.Context, tasks []*ecs.Task) error {
+	log.Println("[INFO] Waiting for running task...")
+
+	taskArns := []*string{}
+	for _, task := range tasks {
+		taskArns = append(taskArns, task.TaskArn)
 	}
-	imageWithTag := (d.NewTask.Image.Repository) + ":" + (d.NewTask.Image.Tag)
-	baseDefinition.Image = &imageWithTag
-	return baseDefinition, nil
+	errCh := make(chan error, 1)
+	done := make(chan struct{}, 1)
+	go func() {
+		err := t.waitExitTasks(taskArns)
+		if err != nil {
+			errCh <- err
+		}
+		close(done)
+	}()
+	select {
+	case err := <-errCh:
+		if err != nil {
+			return err
+		}
+	case <-done:
+		log.Println("[INFO] Run task is success")
+	case <-ctx.Done():
+		return errors.New("process timeout")
+	}
+
+	return nil
+}
+
+func (t *Task) waitExitTasks(taskArns []*string) error {
+	for {
+		time.Sleep(5 * time.Second)
+
+		params := &ecs.DescribeTasksInput{
+			Cluster: aws.String(t.Cluster),
+			Tasks:   taskArns,
+		}
+		resp, err := t.awsECS.DescribeTasks(params)
+		if err != nil {
+			return err
+		}
+
+		for _, task := range resp.Tasks {
+			if !t.checkTaskStopped(task) {
+				continue
+			}
+		}
+
+		for _, task := range resp.Tasks {
+			if code, result := t.checkTaskSucceeded(task); !result {
+				return errors.Errorf("exit code: %v", code)
+			}
+		}
+		return nil
+	}
+}
+
+func (t *Task) checkTaskStopped(task *ecs.Task) bool {
+	if *task.DesiredStatus != "STOPPED" {
+		return false
+	}
+	return true
+}
+
+func (t *Task) checkTaskSucceeded(task *ecs.Task) (int64, bool) {
+	for _, c := range task.Containers {
+		if *c.ExitCode != int64(0) {
+			return *c.ExitCode, false
+		}
+	}
+	return int64(0), true
 }

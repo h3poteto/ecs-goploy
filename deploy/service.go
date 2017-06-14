@@ -6,19 +6,76 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/pkg/errors"
 )
 
+// Service has target ECS information, client of aws-sdk-go, tasks information and timeout seconds.
+type Service struct {
+	awsECS *ecs.ECS
+
+	// Name of ECS cluster.
+	Cluster string
+
+	// Name of ECS service.
+	Name string
+
+	// Name of base task definition of deploy.
+	BaseTaskDefinition *string
+
+	// TaskDefinition struct to call aws API.
+	TaskDefinition *TaskDefinition
+
+	// New image for deploy.
+	NewImage *Image
+
+	// Wait time when update service.
+	// This script monitors ECS service for new task definition to be running after call update service API.
+	Timeout time.Duration
+
+	// If deploy failed, rollback to current task definition.
+	EnableRollback bool
+}
+
+// NewService returns a new Service struct, and initialize aws ecs API client.
+// Separates imageWithTag into repository and tag, then sets a NewImage for deploy.
+func NewService(cluster, name, imageWithTag string, baseTaskDefinition *string, timeout time.Duration, enableRollback bool, profile, region string) (*Service, error) {
+	awsECS := ecs.New(session.New(), newConfig(profile, region))
+	taskDefinition := NewTaskDefinition(profile, region)
+	var newImage *Image
+	if len(imageWithTag) > 0 {
+		var err error
+		repository, tag, err := divideImageAndTag(imageWithTag)
+		if err != nil {
+			return nil, err
+		}
+		newImage = &Image{
+			*repository,
+			*tag,
+		}
+	}
+	return &Service{
+		awsECS,
+		cluster,
+		name,
+		baseTaskDefinition,
+		taskDefinition,
+		newImage,
+		timeout,
+		enableRollback,
+	}, nil
+}
+
 // DescribeService gets a current service in the cluster.
-func (d *Deploy) DescribeService() (*ecs.Service, error) {
+func (s *Service) DescribeService() (*ecs.Service, error) {
 	params := &ecs.DescribeServicesInput{
 		Services: []*string{
-			aws.String(d.Name),
+			aws.String(s.Name),
 		},
-		Cluster: aws.String(d.Cluster),
+		Cluster: aws.String(s.Cluster),
 	}
-	resp, err := d.awsECS.DescribeServices(params)
+	resp, err := s.awsECS.DescribeServices(params)
 	if err != nil {
 		return nil, err
 	}
@@ -27,15 +84,15 @@ func (d *Deploy) DescribeService() (*ecs.Service, error) {
 }
 
 // UpdateService updates the service with a new task definition, and wait during update action.
-func (d *Deploy) UpdateService(service *ecs.Service, taskDefinition *ecs.TaskDefinition) error {
+func (s *Service) UpdateService(service *ecs.Service, taskDefinition *ecs.TaskDefinition) error {
 	params := &ecs.UpdateServiceInput{
-		Service:                 aws.String(d.Name),
-		Cluster:                 aws.String(d.Cluster),
+		Service:                 aws.String(s.Name),
+		Cluster:                 aws.String(s.Cluster),
 		DeploymentConfiguration: service.DeploymentConfiguration,
 		DesiredCount:            service.DesiredCount,
 		TaskDefinition:          taskDefinition.TaskDefinitionArn,
 	}
-	resp, err := d.awsECS.UpdateService(params)
+	resp, err := s.awsECS.UpdateService(params)
 	if err != nil {
 		return err
 	}
@@ -44,18 +101,18 @@ func (d *Deploy) UpdateService(service *ecs.Service, taskDefinition *ecs.TaskDef
 	if *newService.DesiredCount <= 0 {
 		return nil
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), d.Timeout)
+	ctx, cancel := context.WithTimeout(context.Background(), s.Timeout)
 	defer cancel()
-	return d.waitUpdating(ctx, taskDefinition)
+	return s.waitUpdating(ctx, taskDefinition)
 }
 
 // waitUpdating waits the new task definition is deployed.
-func (d *Deploy) waitUpdating(ctx context.Context, newTaskDefinition *ecs.TaskDefinition) error {
+func (s *Service) waitUpdating(ctx context.Context, newTaskDefinition *ecs.TaskDefinition) error {
 	log.Println("[INFO] Waiting for new task running...")
 	errCh := make(chan error, 1)
 	done := make(chan struct{}, 1)
 	go func() {
-		err := d.waitSwitchTask(newTaskDefinition)
+		err := s.waitSwitchTask(newTaskDefinition)
 		if err != nil {
 			errCh <- err
 		}
@@ -75,21 +132,21 @@ func (d *Deploy) waitUpdating(ctx context.Context, newTaskDefinition *ecs.TaskDe
 	return nil
 }
 
-func (d *Deploy) waitSwitchTask(newTaskDefinition *ecs.TaskDefinition) error {
+func (s *Service) waitSwitchTask(newTaskDefinition *ecs.TaskDefinition) error {
 	for {
 		time.Sleep(5 * time.Second)
 
-		service, err := d.DescribeService()
+		service, err := s.DescribeService()
 		if err != nil {
 			return err
 		}
-		if d.checkNewTaskRunning(service.Deployments, newTaskDefinition) {
+		if s.checkNewTaskRunning(service.Deployments, newTaskDefinition) {
 			return nil
 		}
 	}
 }
 
-func (d *Deploy) checkNewTaskRunning(deployments []*ecs.Deployment, newTaskDefinition *ecs.TaskDefinition) bool {
+func (s *Service) checkNewTaskRunning(deployments []*ecs.Deployment, newTaskDefinition *ecs.TaskDefinition) bool {
 	if len(deployments) != 1 {
 		return false
 	}
@@ -103,18 +160,18 @@ func (d *Deploy) checkNewTaskRunning(deployments []*ecs.Deployment, newTaskDefin
 
 // Rollback updates the service with current task definition.
 // This method call update-service API and does not wait for execution to end.
-func (d *Deploy) Rollback(service *ecs.Service) error {
-	if d.CurrentTask == nil || d.CurrentTask.TaskDefinition == nil {
+func (s *Service) Rollback(service *ecs.Service, currentTaskDefinition *ecs.TaskDefinition) error {
+	if currentTaskDefinition == nil {
 		return errors.New("old task definition is not exist")
 	}
 	params := &ecs.UpdateServiceInput{
-		Service:                 aws.String(d.Name),
-		Cluster:                 aws.String(d.Cluster),
+		Service:                 aws.String(s.Name),
+		Cluster:                 aws.String(s.Cluster),
 		DeploymentConfiguration: service.DeploymentConfiguration,
 		DesiredCount:            service.DesiredCount,
-		TaskDefinition:          d.CurrentTask.TaskDefinition.TaskDefinitionArn,
+		TaskDefinition:          currentTaskDefinition.TaskDefinitionArn,
 	}
-	_, err := d.awsECS.UpdateService(params)
+	_, err := s.awsECS.UpdateService(params)
 	if err != nil {
 		return err
 	}
