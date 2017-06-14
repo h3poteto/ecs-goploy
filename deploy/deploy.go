@@ -57,115 +57,56 @@ package deploy
 import (
 	"log"
 	"strings"
-	"time"
 
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/pkg/errors"
 )
 
-// Deploy has target ECS information, client of aws-sdk-go, tasks information and timeout seconds.
-type Deploy struct {
-	awsECS *ecs.ECS
-
-	// Name of ECS cluster.
-	Cluster string
-
-	// Name of ECS service.
-	Name string
-
-	// Name of base task definition of deploy.
-	BaseTaskDefinition *string
-
-	// Running task information which contains a task definition.
-	CurrentTask *TaskDefinition
-
-	// Task information which will deploy.
-	NewTask *TaskDefinition
-
-	// Wait time when update service.
-	// This script monitors ECS service for new task definition to be running after call update service API.
-	Timeout time.Duration
-
-	// If deploy failed, rollback to current task definition.
-	EnableRollback bool
-}
-
-// NewDeploy returns a new Deploy struct, and initialize aws ecs API client.
-// Separates imageWithTag into repository and tag, then sets a newTask for deploy.
-func NewDeploy(cluster, name, profile, region, imageWithTag string, baseTaskDefinition *string, timeout time.Duration, enableRollback bool) (*Deploy, error) {
-	awsECS := ecs.New(session.New(), newConfig(profile, region))
-	currentTask := &TaskDefinition{}
-	newTask := &TaskDefinition{}
-	if len(imageWithTag) > 0 {
-		var err error
-		repository, tag, err := divideImageAndTag(imageWithTag)
-		if err != nil {
-			return nil, err
-		}
-		image := &Image{
-			*repository,
-			*tag,
-		}
-		newTask = &TaskDefinition{
-			Image:          image,
-			TaskDefinition: nil,
-		}
-	}
-	return &Deploy{
-		awsECS,
-		cluster,
-		name,
-		baseTaskDefinition,
-		currentTask,
-		newTask,
-		timeout,
-		enableRollback,
-	}, nil
+// Image has repository and tag string.
+type Image struct {
+	Repository string
+	Tag        string
 }
 
 // Deploy runs deploy commands and handle errors.
-func (d *Deploy) Deploy() error {
-	service, err := d.DescribeService()
+func (s *Service) Deploy() error {
+	service, err := s.DescribeService()
 	if err != nil {
 		return errors.Wrap(err, "Can not get current service: ")
 	}
 
 	// get running task definition
-	taskDefinition, err := d.DescribeTaskDefinition(*service.TaskDefinition)
+	currentTaskDefinition, err := s.TaskDefinition.DescribeTaskDefinition(*service.TaskDefinition)
 	if err != nil {
 		return errors.Wrap(err, "Can not get task definition: ")
 	}
-	d.CurrentTask.TaskDefinition = taskDefinition
 
 	// get base task definition if needed
-	baseTaskDefinition := taskDefinition
-	if d.BaseTaskDefinition != nil {
+	baseTaskDefinition := currentTaskDefinition
+	if s.BaseTaskDefinition != nil {
 		var err error
-		baseTaskDefinition, err = d.DescribeTaskDefinition(*d.BaseTaskDefinition)
+		baseTaskDefinition, err = s.TaskDefinition.DescribeTaskDefinition(*s.BaseTaskDefinition)
 		if err != nil {
 			return errors.Wrap(err, "Can not get task definition: ")
 		}
 	}
 
-	newTaskDefinition, err := d.RegisterTaskDefinition(baseTaskDefinition)
+	newTaskDefinition, err := s.TaskDefinition.RegisterTaskDefinition(baseTaskDefinition, s.NewImage)
 	if err != nil {
 		return errors.Wrap(err, "Can not regist new task definition: ")
 	}
-	d.NewTask.TaskDefinition = newTaskDefinition
 	log.Printf("[INFO] new task definition: %+v\n", newTaskDefinition)
 
-	err = d.UpdateService(service, newTaskDefinition)
+	err = s.UpdateService(service, newTaskDefinition)
 	if err != nil {
 		log.Println("[INFO] update failed")
 		updateError := errors.Wrap(err, "Can not update service: ")
-		if !d.EnableRollback {
+		if !s.EnableRollback {
 			return updateError
 		}
 
 		// rollback to the current task definition which have been running to the end
-		log.Printf("[INFO] Rolling back to: %+v\n", d.CurrentTask.TaskDefinition)
-		if err := d.Rollback(service); err != nil {
+		log.Printf("[INFO] Rolling back to: %+v\n", currentTaskDefinition)
+		if err := s.Rollback(service, currentTaskDefinition); err != nil {
 			return errors.Wrap(updateError, err.Error())
 		}
 		return updateError
@@ -183,24 +124,21 @@ func divideImageAndTag(imageWithTag string) (*string, *string, error) {
 
 }
 
-// Task regists new task definition and run task on ECS.
-func (d *Deploy) Task() error {
-	if d.BaseTaskDefinition == nil {
-		return errors.New("task definition is required")
-	}
+//Run regists a new task definition and run task on ECS.
+func (t *Task) Run() error {
 	// get a task definition
-	baseTaskDefinition, err := d.DescribeTaskDefinition(*d.BaseTaskDefinition)
+	baseTaskDefinition, err := t.TaskDefinition.DescribeTaskDefinition(*t.BaseTaskDefinition)
 	if err != nil {
 		return err
 	}
 	// add new task definition to run task
-	newTaskDefinition, err := d.RegisterTaskDefinition(baseTaskDefinition)
+	newTaskDefinition, err := t.TaskDefinition.RegisterTaskDefinition(baseTaskDefinition, t.NewImage)
 	if err != nil {
 		return nil
 	}
 	log.Printf("[INFO] New task definition: %+v\n", newTaskDefinition)
 
-	if err := d.RunTask(newTaskDefinition, d.Timeout); err != nil {
+	if err := t.RunTask(newTaskDefinition, t.Timeout); err != nil {
 		return err
 	}
 	return nil

@@ -41,11 +41,11 @@ func (t *task) task(cmd *cobra.Command, args []string) {
 	if len(t.taskDefinition) > 0 {
 		baseTaskDefinition = &t.taskDefinition
 	}
-	e, err := ecsdeploy.NewDeploy(t.cluster, "", t.profile, t.region, t.imageWithTag, baseTaskDefinition, (time.Duration(t.timeout) * time.Second), false)
+	task, err := ecsdeploy.NewTask(t.cluster, t.imageWithTag, baseTaskDefinition, (time.Duration(t.timeout) * time.Second), t.profile, t.region)
 	if err != nil {
 		log.Fatalf("[ERROR] %v", err)
 	}
-	if err := e.Task(); err != nil {
+	if err := task.Run(); err != nil {
 		log.Fatalf("[ERROR] %v", err)
 	}
 	log.Println("[INFO] Task success")

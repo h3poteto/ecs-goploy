@@ -6,39 +6,82 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/pkg/errors"
 )
 
+type Task struct {
+	awsECS *ecs.ECS
+
+	Cluster string
+
+	BaseTaskDefinition *string
+
+	TaskDefinition *TaskDefinition
+
+	NewImage *Image
+
+	Timeout time.Duration
+}
+
+func NewTask(cluster, imageWithTag string, baseTaskDefinition *string, timeout time.Duration, profile, region string) (*Task, error) {
+	if baseTaskDefinition == nil {
+		return nil, errors.New("task definition is required")
+	}
+	awsECS := ecs.New(session.New(), newConfig(profile, region))
+	taskDefinition := NewTaskDefinition(profile, region)
+	var newImage *Image
+	if len(imageWithTag) > 0 {
+		var err error
+		repository, tag, err := divideImageAndTag(imageWithTag)
+		if err != nil {
+			return nil, err
+		}
+		newImage = &Image{
+			*repository,
+			*tag,
+		}
+	}
+	return &Task{
+		awsECS,
+		cluster,
+		baseTaskDefinition,
+		taskDefinition,
+		newImage,
+		timeout,
+	}, nil
+}
+
 // RunTask calls run-task API.
-func (d *Deploy) RunTask(taskDefinition *ecs.TaskDefinition, timeout time.Duration) error {
+func (t *Task) RunTask(taskDefinition *ecs.TaskDefinition, timeout time.Duration) error {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
 	params := &ecs.RunTaskInput{
-		Cluster:        aws.String(d.Cluster),
+		Cluster:        aws.String(t.Cluster),
 		TaskDefinition: taskDefinition.TaskDefinitionArn,
 	}
-	resp, err := d.awsECS.RunTaskWithContext(ctx, params)
+	resp, err := t.awsECS.RunTaskWithContext(ctx, params)
 	if err != nil {
 		return err
 	}
 
-	return d.waitRunning(ctx, resp.Tasks)
+	return t.waitRunning(ctx, resp.Tasks)
 }
 
 // waitRunning waits a task running.
-func (d *Deploy) waitRunning(ctx context.Context, tasks []*ecs.Task) error {
+func (t *Task) waitRunning(ctx context.Context, tasks []*ecs.Task) error {
 	log.Println("[INFO] Waiting for running task...")
 
 	taskArns := []*string{}
-	for _, t := range tasks {
-		taskArns = append(taskArns, t.TaskArn)
+	for _, task := range tasks {
+		taskArns = append(taskArns, task.TaskArn)
 	}
 	errCh := make(chan error, 1)
 	done := make(chan struct{}, 1)
 	go func() {
-		err := d.waitExitTasks(taskArns)
+		err := t.waitExitTasks(taskArns)
 		if err != nil {
 			errCh <- err
 		}
@@ -58,27 +101,27 @@ func (d *Deploy) waitRunning(ctx context.Context, tasks []*ecs.Task) error {
 	return nil
 }
 
-func (d *Deploy) waitExitTasks(taskArns []*string) error {
+func (t *Task) waitExitTasks(taskArns []*string) error {
 	for {
 		time.Sleep(5 * time.Second)
 
 		params := &ecs.DescribeTasksInput{
-			Cluster: aws.String(d.Cluster),
+			Cluster: aws.String(t.Cluster),
 			Tasks:   taskArns,
 		}
-		resp, err := d.awsECS.DescribeTasks(params)
+		resp, err := t.awsECS.DescribeTasks(params)
 		if err != nil {
 			return err
 		}
 
-		for _, t := range resp.Tasks {
-			if !d.checkTaskStopped(t) {
+		for _, task := range resp.Tasks {
+			if !t.checkTaskStopped(task) {
 				continue
 			}
 		}
 
-		for _, t := range resp.Tasks {
-			if !d.checkTaskSucceeded(t) {
+		for _, task := range resp.Tasks {
+			if !t.checkTaskSucceeded(task) {
 				return errors.New("exit code is not zero")
 			}
 		}
@@ -86,14 +129,14 @@ func (d *Deploy) waitExitTasks(taskArns []*string) error {
 	}
 }
 
-func (d *Deploy) checkTaskStopped(task *ecs.Task) bool {
+func (t *Task) checkTaskStopped(task *ecs.Task) bool {
 	if *task.DesiredStatus != "STOPPED" {
 		return false
 	}
 	return true
 }
 
-func (d *Deploy) checkTaskSucceeded(task *ecs.Task) bool {
+func (t *Task) checkTaskSucceeded(task *ecs.Task) bool {
 	for _, c := range task.Containers {
 		if *c.ExitCode != int64(0) {
 			return false

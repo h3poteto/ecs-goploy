@@ -45,11 +45,11 @@ func (d *deploy) deploy(cmd *cobra.Command, args []string) {
 	if len(d.taskDefinition) > 0 {
 		baseTaskDefinition = &d.taskDefinition
 	}
-	e, err := ecsdeploy.NewDeploy(d.cluster, d.name, d.profile, d.region, d.imageWithTag, baseTaskDefinition, (time.Duration(d.timeout) * time.Second), d.enableRollback)
+	service, err := ecsdeploy.NewService(d.cluster, d.name, d.imageWithTag, baseTaskDefinition, (time.Duration(d.timeout) * time.Second), d.enableRollback, d.profile, d.region)
 	if err != nil {
 		log.Fatalf("[ERROR] %v", err)
 	}
-	if err := e.Deploy(); err != nil {
+	if err := service.Deploy(); err != nil {
 		log.Fatalf("[ERROR] %v", err)
 	}
 	log.Println("[INFO] Deploy success")
