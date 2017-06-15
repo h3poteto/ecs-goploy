@@ -16,8 +16,8 @@ Please check [godoc](https://godoc.org/github.com/crowdworks/ecs-goploy/deploy).
 Get binary from github:
 
 ```
-$ wget https://github.com/crowdworks/ecs-goploy/releases/download/v0.2.0/ecs-goploy_v0.2.0_linux_amd64.zip
-$ unzip ecs-goploy_v0.2.0_linux_amd64.zip
+$ wget https://github.com/crowdworks/ecs-goploy/releases/download/v0.3.0/ecs-goploy_v0.3.0_linux_amd64.zip
+$ unzip ecs-goploy_v0.3.0_linux_amd64.zip
 $ ./ecs-goploy --help
 ```
 
