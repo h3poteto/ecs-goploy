@@ -158,7 +158,11 @@ func (t *Task) waitExitTasks(taskArns []*string) error {
 		}
 
 		for _, task := range resp.Tasks {
-			if code, result := t.checkTaskSucceeded(task); !result {
+			code, result, err := t.checkTaskSucceeded(task)
+			if err != nil {
+				continue
+			}
+			if !result {
 				return errors.Errorf("exit code: %v", code)
 			}
 		}
@@ -173,11 +177,14 @@ func (t *Task) checkTaskStopped(task *ecs.Task) bool {
 	return true
 }
 
-func (t *Task) checkTaskSucceeded(task *ecs.Task) (int64, bool) {
+func (t *Task) checkTaskSucceeded(task *ecs.Task) (int64, bool, error) {
 	for _, c := range task.Containers {
+		if c.ExitCode == nil {
+			return 1, false, errors.New("can not read exit code")
+		}
 		if *c.ExitCode != int64(0) {
-			return *c.ExitCode, false
+			return *c.ExitCode, false, nil
 		}
 	}
-	return int64(0), true
+	return int64(0), true, nil
 }
