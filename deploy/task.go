@@ -78,7 +78,7 @@ func NewTask(cluster, name, imageWithTag, command string, baseTaskDefinition *st
 }
 
 // RunTask calls run-task API.
-func (t *Task) RunTask(taskDefinition *ecs.TaskDefinition, timeout time.Duration) error {
+func (t *Task) RunTask(taskDefinition *ecs.TaskDefinition, timeout time.Duration) ([]*ecs.Task, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
@@ -100,11 +100,15 @@ func (t *Task) RunTask(taskDefinition *ecs.TaskDefinition, timeout time.Duration
 	}
 	resp, err := t.awsECS.RunTaskWithContext(ctx, params)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	log.Printf("[INFO] Running tasks: %+v\n", resp.Tasks)
 
-	return t.waitRunning(ctx, resp.Tasks)
+	err = t.waitRunning(ctx, resp.Tasks)
+	if err != nil {
+		return resp.Tasks, err
+	}
+	return resp.Tasks, nil
 }
 
 // waitRunning waits a task running.
