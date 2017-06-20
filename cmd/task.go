@@ -49,7 +49,7 @@ func (t *task) task(cmd *cobra.Command, args []string) {
 	if err != nil {
 		log.Fatalf("[ERROR] %v", err)
 	}
-	if err := task.Run(); err != nil {
+	if _, err := task.Run(); err != nil {
 		log.Fatalf("[ERROR] %v", err)
 	}
 	log.Println("[INFO] Task success")

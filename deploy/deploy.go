@@ -63,7 +63,7 @@ For example:
     if err != nil {
         log.Fatal(err)
     }
-    if err := task.Run(); err != nil {
+    if _, err := task.Run(); err != nil {
         log.Fatal(err)
     }
     log.Println("[INFO] Task success")
@@ -75,6 +75,7 @@ import (
 	"log"
 	"strings"
 
+	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/pkg/errors"
 )
 
@@ -146,24 +147,21 @@ func divideImageAndTag(imageWithTag string) (*string, *string, error) {
 }
 
 //Run regists a new task definition and run task on ECS.
-func (t *Task) Run() error {
+func (t *Task) Run() ([]*ecs.Task, error) {
 	if t.BaseTaskDefinition == nil {
-		return errors.New("task definition is required")
+		return nil, errors.New("task definition is required")
 	}
 	// get a task definition
 	baseTaskDefinition, err := t.TaskDefinition.DescribeTaskDefinition(*t.BaseTaskDefinition)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	// add new task definition to run task
 	newTaskDefinition, err := t.TaskDefinition.RegisterTaskDefinition(baseTaskDefinition, t.NewImage)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 	log.Printf("[INFO] New task definition: %+v\n", newTaskDefinition)
 
-	if err := t.RunTask(newTaskDefinition, t.Timeout); err != nil {
-		return err
-	}
-	return nil
+	return t.RunTask(newTaskDefinition, t.Timeout)
 }
