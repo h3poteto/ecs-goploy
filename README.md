@@ -77,6 +77,7 @@ Flags:
 ```
 
 # Configuration
+## AWS Configuration
 
 `ecs-goploy` calls AWS API via aws-skd-go, so you need export environment variables:
 
@@ -97,6 +98,31 @@ aws_secret_access_key = XXXXX
 or prepare IAM Role or IAM Task Role.
 
 AWS region can be set command argument: `--region`.
+
+## AWS IAM Policy
+
+Below is a basic IAM Policy required for ecs-goploy.
+
+```
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AllowUserToECSDeploy",
+      "Effect": "Allow",
+      "Action": [
+        "ecs:DescribeServices",
+        "ecs:DescribeTaskDefinition",
+        "ecs:RegisterTaskDefinition",
+        "ecs:UpdateService",
+        "ecs:RunTask",
+        "ecs:DescribeTasks"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+```
 
 
 # TODO
