@@ -21,6 +21,10 @@ jobs:
       - run:
           name: Build
           command: go build
+      - run:
+          name: Test
+          command: |
+            cd deploy && go test
       - save_cache:
           name: Saving cache - vendor
           key: vendor-{{ checksum "Gopkg.toml" }}-{{ checksum "Gopkg.lock" }}
