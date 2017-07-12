@@ -8,12 +8,13 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ecs"
+	"github.com/aws/aws-sdk-go/service/ecs/ecsiface"
 	"github.com/pkg/errors"
 )
 
 // Service has target ECS information, client of aws-sdk-go, tasks information and timeout seconds.
 type Service struct {
-	awsECS *ecs.ECS
+	awsECS ecsiface.ECSAPI
 
 	// Name of ECS cluster.
 	Cluster string

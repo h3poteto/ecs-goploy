@@ -9,12 +9,13 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ecs"
+	"github.com/aws/aws-sdk-go/service/ecs/ecsiface"
 	"github.com/pkg/errors"
 )
 
 // Task has target ECS information, client of aws-sdk-go, command and timeout seconds.
 type Task struct {
-	awsECS *ecs.ECS
+	awsECS ecsiface.ECSAPI
 
 	// Name of ECS cluster.
 	Cluster string

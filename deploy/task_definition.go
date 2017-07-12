@@ -4,11 +4,12 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ecs"
+	"github.com/aws/aws-sdk-go/service/ecs/ecsiface"
 )
 
 // TaskDefinition has image and task definition information.
 type TaskDefinition struct {
-	awsECS *ecs.ECS
+	awsECS ecsiface.ECSAPI
 }
 
 // NewTaskDefinition initializes aws ecs API client, and returns a task definition struct.
