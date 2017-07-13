@@ -163,5 +163,5 @@ func (t *Task) Run() ([]*ecs.Task, error) {
 	}
 	log.Printf("[INFO] New task definition: %+v\n", newTaskDefinition)
 
-	return t.RunTask(newTaskDefinition, t.Timeout)
+	return t.RunTask(newTaskDefinition)
 }

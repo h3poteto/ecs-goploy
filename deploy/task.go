@@ -79,8 +79,8 @@ func NewTask(cluster, name, imageWithTag, command string, baseTaskDefinition *st
 }
 
 // RunTask calls run-task API.
-func (t *Task) RunTask(taskDefinition *ecs.TaskDefinition, timeout time.Duration) ([]*ecs.Task, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+func (t *Task) RunTask(taskDefinition *ecs.TaskDefinition) ([]*ecs.Task, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), t.Timeout)
 	defer cancel()
 
 	containerOverride := &ecs.ContainerOverride{
