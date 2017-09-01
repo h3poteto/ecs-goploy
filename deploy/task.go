@@ -144,6 +144,7 @@ func (t *Task) waitRunning(ctx context.Context, tasks []*ecs.Task) error {
 }
 
 func (t *Task) waitExitTasks(taskArns []*string) error {
+retry:
 	for {
 		time.Sleep(5 * time.Second)
 
@@ -158,14 +159,14 @@ func (t *Task) waitExitTasks(taskArns []*string) error {
 
 		for _, task := range resp.Tasks {
 			if !t.checkTaskStopped(task) {
-				continue
+				continue retry
 			}
 		}
 
 		for _, task := range resp.Tasks {
 			code, result, err := t.checkTaskSucceeded(task)
 			if err != nil {
-				continue
+				continue retry
 			}
 			if !result {
 				return errors.Errorf("exit code: %v", code)
