@@ -3,13 +3,13 @@ package deploy
 import (
 	"context"
 	"log"
-	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/aws/aws-sdk-go/service/ecs/ecsiface"
+	"github.com/mattn/go-shellwords"
 	"github.com/pkg/errors"
 )
 
@@ -60,7 +60,11 @@ func NewTask(cluster, name, imageWithTag, command string, baseTaskDefinition *st
 			*tag,
 		}
 	}
-	commands := strings.Split(command, " ")
+	p := shellwords.NewParser()
+	commands, err := p.Parse(command)
+	if err != nil {
+		return nil, errors.Wrap(err, "Parse error in a task command")
+	}
 	var cmd []*string
 	for _, c := range commands {
 		cmd = append(cmd, aws.String(c))
