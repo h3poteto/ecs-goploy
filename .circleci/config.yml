@@ -2,7 +2,7 @@ version: 2
 jobs:
   build:
     docker:
-      - image: crowdworks/dep:latest
+      - image: quay.io/crowdworks/dep:latest
         environment:
           GOPATH: /go
     working_directory: /go/src/github.com/crowdworks/ecs-goploy
