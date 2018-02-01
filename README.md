@@ -111,6 +111,8 @@ Below is a basic IAM Policy required for ecs-goploy.
       "Sid": "AllowUserToECSDeploy",
       "Effect": "Allow",
       "Action": [
+        "ecr:DescribeRepositories",
+        "ecr:DescribeImages",
         "ecs:DescribeServices",
         "ecs:DescribeTaskDefinition",
         "ecs:RegisterTaskDefinition",
