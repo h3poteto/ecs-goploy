@@ -2,10 +2,10 @@ version: 2
 jobs:
   build:
     docker:
-      - image: quay.io/crowdworks/dep:latest
+      - image: h3poteto/golang:1.9.4
         environment:
           GOPATH: /go
-    working_directory: /go/src/github.com/crowdworks/ecs-goploy
+    working_directory: /go/src/github.com/h3poteto/ecs-goploy
     steps:
       - checkout
       - run:
@@ -14,7 +14,7 @@ jobs:
       - restore_cache:
           name: Restoring cache - vendor
           keys:
-            - vendor-{{ checksum "Gopkg.toml" }}-{{ checksum "Gopkg.lock" }}
+            - vendor-{{ arch }}-{{ checksum "Gopkg.toml" }}-{{ checksum "Gopkg.lock" }}
       - run:
           name: Install packages
           command: dep ensure
@@ -27,6 +27,6 @@ jobs:
             cd deploy && go test
       - save_cache:
           name: Saving cache - vendor
-          key: vendor-{{ checksum "Gopkg.toml" }}-{{ checksum "Gopkg.lock" }}
+          key: vendor-{{ arch }}-{{ checksum "Gopkg.toml" }}-{{ checksum "Gopkg.lock" }}
           paths:
             - "vendor"
