@@ -1,14 +1,14 @@
 # ecs-goploy
-[![CircleCI](https://circleci.com/gh/crowdworks/ecs-goploy.svg?style=svg)](https://circleci.com/gh/crowdworks/ecs-goploy)
-[![GitHub release](http://img.shields.io/github/release/crowdworks/ecs-goploy.svg?style=flat-square)](https://github.com/crowdworks/ecs-goploy/releases)
-[![GoDoc](https://godoc.org/github.com/crowdworks/ecs-goploy/deploy?status.svg)](https://godoc.org/github.com/crowdworks/ecs-goploy/deploy)
+[![CircleCI](https://circleci.com/gh/h3poteto/ecs-goploy.svg?style=svg)](https://circleci.com/gh/h3poteto/ecs-goploy)
+[![GitHub release](http://img.shields.io/github/release/h3poteto/ecs-goploy.svg?style=flat-square)](https://github.com/h3poteto/ecs-goploy/releases)
+[![GoDoc](https://godoc.org/github.com/h3poteto/ecs-goploy/deploy?status.svg)](https://godoc.org/github.com/h3poteto/ecs-goploy/deploy)
 
 `ecs-goploy` is a re-implementation of [ecs-deploy](https://github.com/silinternational/ecs-deploy) in Golang.
 
 
 This is a command line tool, but you can use `deploy` as a package.
 So when you write own deploy script for AWS ECS, you can embed `deploy` package in your golang source code and customize deploy recipe.
-Please check [godoc](https://godoc.org/github.com/crowdworks/ecs-goploy/deploy).
+Please check [godoc](https://godoc.org/github.com/h3poteto/ecs-goploy/deploy).
 
 
 # Install
@@ -16,8 +16,8 @@ Please check [godoc](https://godoc.org/github.com/crowdworks/ecs-goploy/deploy).
 Get binary from github:
 
 ```
-$ wget https://github.com/crowdworks/ecs-goploy/releases/download/v0.3.3/ecs-goploy_v0.3.3_linux_amd64.zip
-$ unzip ecs-goploy_v0.3.3_linux_amd64.zip
+$ wget https://github.com/h3poteto/ecs-goploy/releases/download/v0.3.4/ecs-goploy_v0.3.4_linux_amd64.zip
+$ unzip ecs-goploy_v0.3.4_linux_amd64.zip
 $ ./ecs-goploy --help
 ```
 

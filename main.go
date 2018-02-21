@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/crowdworks/ecs-goploy/cmd"
+	"github.com/h3poteto/ecs-goploy/cmd"
 )
 
 func main() {

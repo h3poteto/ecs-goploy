@@ -3,7 +3,7 @@ Package deploy provides simple functions for deploy ECS.
 
 Usage:
 
-    import "github.com/crowdworks/ecs-goploy/deploy"
+    import "github.com/h3poteto/ecs-goploy/deploy"
 
 Service update
 

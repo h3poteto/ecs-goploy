@@ -4,7 +4,7 @@ import (
 	"log"
 	"time"
 
-	ecsdeploy "github.com/crowdworks/ecs-goploy/deploy"
+	ecsdeploy "github.com/h3poteto/ecs-goploy/deploy"
 	"github.com/spf13/cobra"
 )
 
