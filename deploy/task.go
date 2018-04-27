@@ -107,6 +107,10 @@ func (t *Task) RunTask(taskDefinition *ecs.TaskDefinition) ([]*ecs.Task, error) 
 	if err != nil {
 		return nil, err
 	}
+	if len(resp.Failures) > 0 {
+		log.Printf("[ERROR] Run task error: %+v\n", resp.Failures)
+		return nil, errors.New(*resp.Failures[0].Reason)
+	}
 	log.Printf("[INFO] Running tasks: %+v\n", resp.Tasks)
 
 	err = t.waitRunning(ctx, resp.Tasks)
