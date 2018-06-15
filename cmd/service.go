@@ -17,6 +17,7 @@ type service struct {
 	region         string
 	timeout        int
 	enableRollback bool
+	skipCheckDeployments bool
 }
 
 func serviceCmd() *cobra.Command {
@@ -36,6 +37,7 @@ func serviceCmd() *cobra.Command {
 	flags.StringVarP(&s.region, "region", "r", "", "AWS Region Name")
 	flags.IntVarP(&s.timeout, "timeout", "t", 300, "Timeout seconds. Script monitors ECS Service for new task definition to be running")
 	flags.BoolVar(&s.enableRollback, "enable-rollback", false, "Rollback task definition if new version is not running before TIMEOUT")
+	flags.BoolVar(&s.skipCheckDeployments, "skip-check-deployments", false, "Skip checking deployments when detect whether deploy completed")
 
 	return cmd
 }
@@ -45,7 +47,7 @@ func (s *service) service(cmd *cobra.Command, args []string) {
 	if len(s.taskDefinition) > 0 {
 		baseTaskDefinition = &s.taskDefinition
 	}
-	service, err := ecsdeploy.NewService(s.cluster, s.name, s.imageWithTag, baseTaskDefinition, (time.Duration(s.timeout) * time.Second), s.enableRollback, s.profile, s.region)
+	service, err := ecsdeploy.NewService(s.cluster, s.name, s.imageWithTag, baseTaskDefinition, (time.Duration(s.timeout) * time.Second), s.enableRollback, s.skipCheckDeployments, s.profile, s.region)
 	if err != nil {
 		log.Fatalf("[ERROR] %v", err)
 	}

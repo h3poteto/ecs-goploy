@@ -37,11 +37,15 @@ type Service struct {
 
 	// If deploy failed, rollback to current task definition.
 	EnableRollback bool
+
+	// When check whether deploy completed, confirm only new task status.
+	// If this flag is true, confirm service deployments status.
+	SkipCheckDeployments bool
 }
 
 // NewService returns a new Service struct, and initialize aws ecs API client.
 // Separates imageWithTag into repository and tag, then sets a NewImage for deploy.
-func NewService(cluster, name, imageWithTag string, baseTaskDefinition *string, timeout time.Duration, enableRollback bool, profile, region string) (*Service, error) {
+func NewService(cluster, name, imageWithTag string, baseTaskDefinition *string, timeout time.Duration, enableRollback bool, skipCheckDeployments bool, profile, region string) (*Service, error) {
 	awsECS := ecs.New(session.New(), newConfig(profile, region))
 	taskDefinition := NewTaskDefinition(profile, region)
 	var newImage *Image
@@ -65,6 +69,7 @@ func NewService(cluster, name, imageWithTag string, baseTaskDefinition *string, 
 		newImage,
 		timeout,
 		enableRollback,
+		skipCheckDeployments,
 	}, nil
 }
 
@@ -125,7 +130,7 @@ func (s *Service) waitUpdating(ctx context.Context, newTaskDefinition *ecs.TaskD
 			return err
 		}
 	case <-done:
-		log.Println("[INFO] New task is running, and old task is stopped")
+		log.Println("[INFO] New task is running")
 	case <-ctx.Done():
 		return errors.New("process timeout")
 	}
@@ -141,13 +146,20 @@ func (s *Service) waitSwitchTask(newTaskDefinition *ecs.TaskDefinition) error {
 		if err != nil {
 			return err
 		}
-		if s.checkNewTaskRunning(service.Deployments, newTaskDefinition) {
+		if s.checkCompleteDeploy(service, newTaskDefinition) {
 			return nil
 		}
 	}
 }
 
-func (s *Service) checkNewTaskRunning(deployments []*ecs.Deployment, newTaskDefinition *ecs.TaskDefinition) bool {
+func (s *Service) checkCompleteDeploy(service *ecs.Service, newTaskDefinition *ecs.TaskDefinition) bool {
+	if s.SkipCheckDeployments {
+		return s.checkNewTaskRunning(service, newTaskDefinition)
+	}
+	return s.checkDeployments(service.Deployments, newTaskDefinition)
+}
+
+func (s *Service) checkDeployments(deployments []*ecs.Deployment, newTaskDefinition *ecs.TaskDefinition) bool {
 	if len(deployments) != 1 {
 		return false
 	}
@@ -157,6 +169,35 @@ func (s *Service) checkNewTaskRunning(deployments []*ecs.Deployment, newTaskDefi
 		}
 	}
 	return false
+}
+
+func (s *Service) checkNewTaskRunning(service *ecs.Service, newTaskDefinition *ecs.TaskDefinition) bool {
+	input := &ecs.ListTasksInput{
+		Cluster: service.ClusterArn,
+		ServiceName: service.ServiceName,
+		DesiredStatus: aws.String("RUNNING"),
+	}
+	runningTasks, err := s.awsECS.ListTasks(input)
+	if err != nil {
+		log.Printf("[ERROR] %v", err)
+		return false
+	}
+	params := &ecs.DescribeTasksInput{
+		Cluster: service.ClusterArn,
+		Tasks: runningTasks.TaskArns,
+	}
+	resp, err := s.awsECS.DescribeTasks(params)
+	if err != nil {
+		log.Printf("[ERROR] %v", err)
+		return false
+	}
+	for _, task := range resp.Tasks {
+		if *task.LastStatus == "RUNNING" && *task.TaskDefinitionArn == *newTaskDefinition.TaskDefinitionArn {
+			return true
+		}
+	}
+	return false
+
 }
 
 // Rollback updates the service with current task definition.
