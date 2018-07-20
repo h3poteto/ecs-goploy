@@ -18,5 +18,6 @@ func init() {
 		serviceCmd(),
 		taskCmd(),
 		versionCmd(),
+		taskDefinitionCmd(),
 	)
 }
