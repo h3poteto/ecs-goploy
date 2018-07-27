@@ -152,19 +152,12 @@ func (t *Task) Run() ([]*ecs.Task, error) {
 		return nil, errors.New("task definition is required")
 	}
 	// get a task definition
-	// TODO: Use provided task definition
 	baseTaskDefinition, err := t.TaskDefinition.DescribeTaskDefinition(*t.BaseTaskDefinition)
 	if err != nil {
 		return nil, err
 	}
-	// add new task definition to run task
-	newTaskDefinition, err := t.TaskDefinition.RegisterTaskDefinition(baseTaskDefinition, t.NewImage)
-	if err != nil {
-		return nil, err
-	}
-	log.Printf("[INFO] New task definition: %+v\n", newTaskDefinition)
 
-	return t.RunTask(newTaskDefinition)
+	return t.RunTask(baseTaskDefinition)
 }
 
 // CreateTaskDefinition create a new revision.
@@ -184,5 +177,11 @@ func (n *TaskDefinition) Create(base *string, dockerImage string) (*ecs.TaskDefi
 	if err != nil {
 		return nil, err
 	}
-	return n.RegisterTaskDefinition(baseTaskDefinition, image)
+	newTaskDefinition, err := n.RegisterTaskDefinition(baseTaskDefinition, image)
+	if err != nil {
+		return nil, err
+	}
+	log.Printf("[INFO] New task definition: %+v\n", newTaskDefinition)
+
+	return newTaskDefinition, nil
 }

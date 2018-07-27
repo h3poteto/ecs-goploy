@@ -30,7 +30,7 @@ func taskCmd() *cobra.Command {
 	flags := cmd.Flags()
 	flags.StringVarP(&t.cluster, "cluster", "c", "", "Name of ECS cluster")
 	flags.StringVarP(&t.name, "container-name", "n", "", "Name of the container for override task definition")
-	flags.StringVarP(&t.taskDefinition, "task-definition", "d", "", "Name of base task definition to run task. Family and revision (family:revision) or full ARN")
+	flags.StringVarP(&t.taskDefinition, "task-definition", "d", "", "Name of task definition to run task. Family and revision (family:revision) or full ARN")
 	flags.StringVarP(&t.imageWithTag, "image", "i", "", "Name of Doker image to run, ex: repo/image:latest")
 	flags.StringVarP(&t.profile, "profile", "p", "", "AWS Profile to use")
 	flags.StringVarP(&t.region, "region", "r", "", "AWS Region Name")
