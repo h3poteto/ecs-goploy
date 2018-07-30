@@ -146,7 +146,7 @@ func divideImageAndTag(imageWithTag string) (*string, *string, error) {
 
 }
 
-//Run regists a new task definition and run task on ECS.
+//Run run task on ECS based on provided task definition.
 func (t *Task) Run() ([]*ecs.Task, error) {
 	if t.BaseTaskDefinition == nil {
 		return nil, errors.New("task definition is required")
@@ -156,12 +156,32 @@ func (t *Task) Run() ([]*ecs.Task, error) {
 	if err != nil {
 		return nil, err
 	}
-	// add new task definition to run task
-	newTaskDefinition, err := t.TaskDefinition.RegisterTaskDefinition(baseTaskDefinition, t.NewImage)
+
+	return t.RunTask(baseTaskDefinition)
+}
+
+// Create creates a new revision of the task definition.
+func (n *TaskDefinition) Create(base *string, dockerImage string) (*ecs.TaskDefinition, error) {
+	repository, revision, err := divideImageAndTag(dockerImage)
+	if err != nil {
+		return nil, err
+	}
+	image := &Image{
+		Repository: *repository,
+		Tag:        *revision,
+	}
+	if base == nil {
+		return nil, errors.New("task definition is required")
+	}
+	baseTaskDefinition, err := n.DescribeTaskDefinition(*base)
+	if err != nil {
+		return nil, err
+	}
+	newTaskDefinition, err := n.RegisterTaskDefinition(baseTaskDefinition, image)
 	if err != nil {
 		return nil, err
 	}
 	log.Printf("[INFO] New task definition: %+v\n", newTaskDefinition)
 
-	return t.RunTask(newTaskDefinition)
+	return newTaskDefinition, nil
 }
