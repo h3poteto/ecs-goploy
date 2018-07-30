@@ -15,9 +15,8 @@ var RootCmd = &cobra.Command{
 func init() {
 	cobra.OnInitialize()
 	RootCmd.AddCommand(
-		serviceCmd(),
-		taskCmd(),
 		versionCmd(),
-		taskDefinitionCmd(),
+		runCmd(),
+		updateCmd(),
 	)
 }

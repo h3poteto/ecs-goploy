@@ -7,33 +7,17 @@ import (
 	"github.com/spf13/cobra"
 )
 
-type newTaskDefinition struct {
+type updateTaskDefinition struct {
 	baseTaskDefinition string
 	imageWithTag       string
 	profile            string
 	region             string
 }
 
-func taskDefinitionCmd() *cobra.Command {
+func updateTaskDefinitionCmd() *cobra.Command {
+	n := &updateTaskDefinition{}
 	cmd := &cobra.Command{
 		Use:   "task-definition",
-		Short: "Manage ECS Task Definitions",
-		Run: func(cmd *cobra.Command, arg []string) {
-			cmd.Help()
-		},
-	}
-
-	cmd.AddCommand(
-		newTaskDefinitionCmd(),
-	)
-
-	return cmd
-}
-
-func newTaskDefinitionCmd() *cobra.Command {
-	n := &newTaskDefinition{}
-	cmd := &cobra.Command{
-		Use:   "new",
 		Short: "Create a new revision of the task definiition",
 		RunE:  n.create,
 	}
@@ -47,7 +31,7 @@ func newTaskDefinitionCmd() *cobra.Command {
 	return cmd
 }
 
-func (n *newTaskDefinition) create(cmd *cobra.Command, args []string) error {
+func (n *updateTaskDefinition) create(cmd *cobra.Command, args []string) error {
 	var baseTaskDefinition *string
 	if len(n.baseTaskDefinition) > 0 {
 		baseTaskDefinition = &n.baseTaskDefinition

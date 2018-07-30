@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-type task struct {
+type runTask struct {
 	cluster        string
 	name           string
 	taskDefinition string
@@ -19,8 +19,8 @@ type task struct {
 	timeout        int
 }
 
-func taskCmd() *cobra.Command {
-	t := &task{}
+func runTaskCmd() *cobra.Command {
+	t := &runTask{}
 	cmd := &cobra.Command{
 		Use:   "task",
 		Short: "Run task on ECS",
@@ -40,7 +40,7 @@ func taskCmd() *cobra.Command {
 	return cmd
 }
 
-func (t *task) task(cmd *cobra.Command, args []string) {
+func (t *runTask) task(cmd *cobra.Command, args []string) {
 	var baseTaskDefinition *string
 	if len(t.taskDefinition) > 0 {
 		baseTaskDefinition = &t.taskDefinition

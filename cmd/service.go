@@ -8,20 +8,20 @@ import (
 	"github.com/spf13/cobra"
 )
 
-type service struct {
-	cluster        string
-	name           string
-	taskDefinition string
-	imageWithTag   string
-	profile        string
-	region         string
-	timeout        int
-	enableRollback bool
+type updateService struct {
+	cluster              string
+	name                 string
+	taskDefinition       string
+	imageWithTag         string
+	profile              string
+	region               string
+	timeout              int
+	enableRollback       bool
 	skipCheckDeployments bool
 }
 
-func serviceCmd() *cobra.Command {
-	s := &service{}
+func updateServiceCmd() *cobra.Command {
+	s := &updateService{}
 	cmd := &cobra.Command{
 		Use:   "service",
 		Short: "Service deploy to ECS",
@@ -42,7 +42,7 @@ func serviceCmd() *cobra.Command {
 	return cmd
 }
 
-func (s *service) service(cmd *cobra.Command, args []string) {
+func (s *updateService) service(cmd *cobra.Command, args []string) {
 	var baseTaskDefinition *string
 	if len(s.taskDefinition) > 0 {
 		baseTaskDefinition = &s.taskDefinition
