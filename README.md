@@ -74,6 +74,19 @@ Flags:
   -r, --region string            AWS Region Name
   -d, --task-definition string   Name of base task definition to run task. Family and revision (family:revision) or full ARN
   -t, --timeout int              Timeout seconds (default 300)
+
+$ ./ecs-goploy task-definition new --help
+Create a new revision of the task definiition
+
+Usage:
+  ecs-goploy task-definition new [flags]
+
+Flags:
+  -d, --base-task-definition string   Nmae of base task definition to create a new revision. Family and revision (family:revision) or full ARN
+  -h, --help                          help for new
+  -i, --image string                  Name of Docker image to update, ex: repo/image:latest
+  -p, --profile string                AWS Profile to use
+  -r, --region string                 AWS Region Name
 ```
 
 # Configuration
