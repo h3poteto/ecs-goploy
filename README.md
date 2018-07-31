@@ -22,30 +22,15 @@ $ ./ecs-goploy --help
 ```
 
 # Usage
+## Deploy an ECS Service
+
 
 ```
-$ ./ecs-goploy help
-Deploy commands for ECS
+$ ./ecs-goploy update service --help
+Deploy an ECS Service
 
 Usage:
-  ecs-goploy [command]
-
-Available Commands:
-  help        Help about any command
-  service     Service deploy to ECS
-  task        Run task on ECS
-  version     Print the version number
-
-Flags:
-  -h, --help   help for ecs-goploy
-
-Use "ecs-goploy [command] --help" for more information about a command.
-
-$ ./ecs-goploy service --help
-Service deploy to ECS
-
-Usage:
-  ecs-goploy service [flags]
+  ecs-goploy update service [flags]
 
 Flags:
   -c, --cluster string           Name of ECS cluster
@@ -55,39 +40,47 @@ Flags:
   -p, --profile string           AWS Profile to use
   -r, --region string            AWS Region Name
   -n, --service-name string      Name of service to deploy
+      --skip-check-deployments   Skip checking deployments when detect whether deploy completed
   -d, --task-definition string   Name of base task definition to deploy. Family and revision (family:revision) or full ARN
   -t, --timeout int              Timeout seconds. Script monitors ECS Service for new task definition to be running (default 300)
+```
 
-$ ./ecs-goploy task --help                                                                                                                                                              [master]
+## Run Task
+
+```
+$ ./ecs-goploy run task --help
 Run task on ECS
 
 Usage:
-  ecs-goploy task [flags]
+  ecs-goploy run task [flags]
 
 Flags:
   -c, --cluster string           Name of ECS cluster
       --command string           Task command which run on ECS
   -n, --container-name string    Name of the container for override task definition
   -h, --help                     help for task
-  -i, --image string             Name of Doker image to run, ex: repo/image:latest
   -p, --profile string           AWS Profile to use
   -r, --region string            AWS Region Name
-  -d, --task-definition string   Name of base task definition to run task. Family and revision (family:revision) or full ARN
+  -d, --task-definition string   Name of task definition to run task. Family and revision (family:revision) or full ARN
   -t, --timeout int              Timeout seconds (default 300)
+```
 
-$ ./ecs-goploy task-definition new --help
-Create a new revision of the task definiition
+## Update Scheduled Task
+
+```
+$ ./ecs-goploy update scheduled-task --help
+Update ECS Scheduled Task
 
 Usage:
-  ecs-goploy task-definition new [flags]
+  ecs-goploy update scheduled-task [flags]
 
 Flags:
-  -d, --base-task-definition string   Nmae of base task definition to create a new revision. Family and revision (family:revision) or full ARN
-  -h, --help                          help for new
-  -i, --image string                  Name of Docker image to update, ex: repo/image:latest
-  -p, --profile string                AWS Profile to use
-  -r, --region string                 AWS Region Name
+  -c, --count int                Count of the task (default 1)
+  -h, --help                     help for scheduled-task
+  -n, --name string              Name of scheduled task
+  -d, --task-definition string   Name of task definition to update scheduled task. Family and revision (family:revision) or full ARN
 ```
+
 
 # Configuration
 ## AWS Configuration
