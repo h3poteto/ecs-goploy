@@ -11,6 +11,7 @@ import (
 	"github.com/pkg/errors"
 )
 
+// ScheduledTask has target task definition information and client of aws-sdk-go.
 type ScheduledTask struct {
 	awsCloudWatchEvents eventsiface.CloudWatchEventsAPI
 
@@ -18,6 +19,7 @@ type ScheduledTask struct {
 	TaskDefinition *TaskDefinition
 }
 
+// NewScheduledTask returns a nwe ScheduledTask struct, and initialize aws cloudwatchevents API client.
 func NewScheduledTask(profile, region string) *ScheduledTask {
 	awsCloudWatchEvents := events.New(session.New(), newConfig(profile, region))
 	taskDefinition := NewTaskDefinition(profile, region)
@@ -27,6 +29,7 @@ func NewScheduledTask(profile, region string) *ScheduledTask {
 	}
 }
 
+// ListsEventTargets list up event targets based on rule name.
 func (s *ScheduledTask) ListsEventTargets(ruleName *string) ([]*events.Target, error) {
 	params := &events.ListTargetsByRuleInput{
 		Rule: ruleName,
@@ -38,6 +41,7 @@ func (s *ScheduledTask) ListsEventTargets(ruleName *string) ([]*events.Target, e
 	return resp.Targets, nil
 }
 
+// DescribeRule finds an event rule.
 func (s *ScheduledTask) DescribeRule(name string) (*events.DescribeRuleOutput, error) {
 	params := &events.DescribeRuleInput{
 		Name: aws.String(name),
@@ -49,6 +53,7 @@ func (s *ScheduledTask) DescribeRule(name string) (*events.DescribeRuleOutput, e
 	return resp, nil
 }
 
+// update updates an event target.
 func (s *ScheduledTask) update(taskCount int64, taskDefinition *ecs.TaskDefinition, baseTarget *events.Target, ruleName *string) error {
 	ecsParameter := &events.EcsParameters{
 		TaskCount:         aws.Int64(taskCount),
@@ -74,6 +79,7 @@ func (s *ScheduledTask) update(taskCount int64, taskDefinition *ecs.TaskDefiniti
 	return nil
 }
 
+// UpdateTargets updates all event targets related the rule.
 func (s *ScheduledTask) UpdateTargets(taskCount int64, taskDefinition *ecs.TaskDefinition, name string) error {
 	rule, err := s.DescribeRule(name)
 	if err != nil {

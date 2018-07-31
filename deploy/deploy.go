@@ -186,6 +186,7 @@ func (n *TaskDefinition) Create(base *string, dockerImage string) (*ecs.TaskDefi
 	return newTaskDefinition, nil
 }
 
+// Update update the cloudwatch event with provided task definition.
 func (s *ScheduledTask) Update(name string, taskDefinition *string, count int64) error {
 	if taskDefinition == nil {
 		return errors.New("task definition is required")
