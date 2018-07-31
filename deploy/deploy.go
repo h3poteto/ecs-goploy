@@ -53,13 +53,27 @@ For example:
     }
     log.Println("[INFO] Deploy success")
 
+TaskDefinition update
+
+You can create a new revision of the task definition. Please use this task definition at `Task` and `ScheduledTask`.
+
+For example:
+
+    taskDefinition := ecsdeploy.NewTaskDefinition()
+    t, err := taskDefinition.Create("sample-task-definition:revision", "nginx:stable")
+    if err != nil {
+        log.Fatal(err)
+    }
+    log.Println(*t.TaskDefinitionArn)
+
+
 Run task
 
 When you want to run task on ECS at once, plese use this package as follows.
 
 For example:
 
-    task, err := ecsdeploy.NewTask("cluster", "container-name", "echo hoge", "sample-task-definition:1", (5 * time.Minute), "", "")
+    task, err := ecsdeploy.NewTask("cluster", "container-name", "echo hoge", "sample-task-definition:2", (5 * time.Minute), "", "")
     if err != nil {
         log.Fatal(err)
     }
@@ -67,6 +81,16 @@ For example:
         log.Fatal(err)
     }
     log.Println("[INFO] Task success")
+
+
+ScheduledTask update
+
+When you update the ECS Scheduled Task, please use this package.
+
+For example:
+
+    scheduledTask := ecsdeploy.NewScheduledTask()
+    scheduledTask("schedule-name", "sample-task-definition:2", 1)
 
 */
 package deploy
