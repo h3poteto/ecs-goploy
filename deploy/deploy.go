@@ -59,7 +59,7 @@ When you want to run task on ECS at once, plese use this package as follows.
 
 For example:
 
-    task, err := ecsdeploy.NewTask("cluster", "container-name", "nginx:stable", "echo hoge", "sample-task-definition:1", (5 * time.Minute), "", "")
+    task, err := ecsdeploy.NewTask("cluster", "container-name", "echo hoge", "sample-task-definition:1", (5 * time.Minute), "", "")
     if err != nil {
         log.Fatal(err)
     }
@@ -184,4 +184,17 @@ func (n *TaskDefinition) Create(base *string, dockerImage string) (*ecs.TaskDefi
 	log.Printf("[INFO] New task definition: %+v\n", newTaskDefinition)
 
 	return newTaskDefinition, nil
+}
+
+func (s *ScheduledTask) Update(name string, taskDefinition *string, count int64) error {
+	if taskDefinition == nil {
+		return errors.New("task definition is required")
+	}
+	// get a task definition
+	t, err := s.TaskDefinition.DescribeTaskDefinition(*taskDefinition)
+	if err != nil {
+		return err
+	}
+
+	return s.UpdateTargets(count, t, name)
 }

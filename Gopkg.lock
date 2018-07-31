@@ -2,56 +2,115 @@
 
 
 [[projects]]
+  digest = "1:e35bc12e95450021c3a4e7f2bda3e97a00d9c260fc002e221ae7f355762bfe1c"
   name = "github.com/aws/aws-sdk-go"
-  packages = ["aws","aws/awserr","aws/awsutil","aws/client","aws/client/metadata","aws/corehandlers","aws/credentials","aws/credentials/ec2rolecreds","aws/credentials/endpointcreds","aws/credentials/stscreds","aws/defaults","aws/ec2metadata","aws/endpoints","aws/request","aws/session","aws/signer/v4","internal/shareddefaults","private/protocol","private/protocol/json/jsonutil","private/protocol/jsonrpc","private/protocol/query","private/protocol/query/queryutil","private/protocol/rest","private/protocol/xml/xmlutil","service/ecs","service/ecs/ecsiface","service/sts"]
+  packages = [
+    "aws",
+    "aws/awserr",
+    "aws/awsutil",
+    "aws/client",
+    "aws/client/metadata",
+    "aws/corehandlers",
+    "aws/credentials",
+    "aws/credentials/ec2rolecreds",
+    "aws/credentials/endpointcreds",
+    "aws/credentials/stscreds",
+    "aws/defaults",
+    "aws/ec2metadata",
+    "aws/endpoints",
+    "aws/request",
+    "aws/session",
+    "aws/signer/v4",
+    "internal/shareddefaults",
+    "private/protocol",
+    "private/protocol/json/jsonutil",
+    "private/protocol/jsonrpc",
+    "private/protocol/query",
+    "private/protocol/query/queryutil",
+    "private/protocol/rest",
+    "private/protocol/xml/xmlutil",
+    "service/cloudwatchevents",
+    "service/cloudwatchevents/cloudwatcheventsiface",
+    "service/ecs",
+    "service/ecs/ecsiface",
+    "service/sts",
+  ]
+  pruneopts = ""
   revision = "f9a14dadf426ac17058f5ed3ec9bac9a61b5990b"
   version = "v1.8.33"
 
 [[projects]]
+  digest = "1:d6e0eecfa43d59863238fddd995a5ac455801f2264d2963ae29b092ed45ba2bc"
   name = "github.com/go-ini/ini"
   packages = ["."]
+  pruneopts = ""
   revision = "36da989cdc560b989d8f195aec46214d33665d20"
   version = "v1.27.2"
 
 [[projects]]
   branch = "master"
+  digest = "1:870d441fe217b8e689d7949fef6e43efbc787e50f200cb1e70dbca9204a1d6be"
   name = "github.com/inconshreveable/mousetrap"
   packages = ["."]
+  pruneopts = ""
   revision = "76626ae9c91c4f2a10f34cad8ce83ea42c93bb75"
 
 [[projects]]
+  digest = "1:e6f0b9e4dced4b6b5fedb810e2125a9f74dfe2ef1598c55ecb25e8b3d8f514ea"
   name = "github.com/jmespath/go-jmespath"
   packages = ["."]
+  pruneopts = ""
   revision = "3433f3ea46d9f8019119e7dd41274e112a2359a9"
   version = "0.2.2"
 
 [[projects]]
+  digest = "1:477cce5379198d3b8230b5c0961c61fcd1b337371cda81318e89a109245d83cb"
   name = "github.com/mattn/go-shellwords"
   packages = ["."]
+  pruneopts = ""
   revision = "02e3cf038dcea8290e44424da473dd12be796a8a"
   version = "v1.0.3"
 
 [[projects]]
+  digest = "1:7365acd48986e205ccb8652cc746f09c8b7876030d53710ea6ef7d0bd0dcd7ca"
   name = "github.com/pkg/errors"
   packages = ["."]
+  pruneopts = ""
   revision = "645ef00459ed84a119197bfb8d8205042c6df63d"
   version = "v0.8.0"
 
 [[projects]]
   branch = "master"
+  digest = "1:1598a6334fc8e39f377e677a8590c8022d0ed3e7a31d95b5d247962bf5ea2629"
   name = "github.com/spf13/cobra"
   packages = ["."]
+  pruneopts = ""
   revision = "8d4ce3549a0bf0e3569df3aae7423b7743cd05a9"
 
 [[projects]]
   branch = "master"
+  digest = "1:261bc565833ef4f02121450d74eb88d5ae4bd74bfe5d0e862cddb8550ec35000"
   name = "github.com/spf13/pflag"
   packages = ["."]
+  pruneopts = ""
   revision = "e57e3eeb33f795204c1ca35f56c44f83227c6e66"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "bc3f4297b741642d9c1ebbf781d37eff55c58ad2517eb2eb4463fd9dfecd657f"
+  input-imports = [
+    "github.com/aws/aws-sdk-go/aws",
+    "github.com/aws/aws-sdk-go/aws/credentials",
+    "github.com/aws/aws-sdk-go/aws/defaults",
+    "github.com/aws/aws-sdk-go/aws/request",
+    "github.com/aws/aws-sdk-go/aws/session",
+    "github.com/aws/aws-sdk-go/service/cloudwatchevents",
+    "github.com/aws/aws-sdk-go/service/cloudwatchevents/cloudwatcheventsiface",
+    "github.com/aws/aws-sdk-go/service/ecs",
+    "github.com/aws/aws-sdk-go/service/ecs/ecsiface",
+    "github.com/mattn/go-shellwords",
+    "github.com/pkg/errors",
+    "github.com/spf13/cobra",
+  ]
   solver-name = "gps-cdcl"
   solver-version = 1

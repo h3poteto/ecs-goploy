@@ -29,9 +29,6 @@ type Task struct {
 	// TaskDefinition struct to call aws API.
 	TaskDefinition *TaskDefinition
 
-	// New image for deploy.
-	NewImage *Image
-
 	// Task command which run on ECS.
 	Command []*string
 
@@ -41,25 +38,12 @@ type Task struct {
 }
 
 // NewTask returns a new Task struct, and initialize aws ecs API client.
-// Separates imageWithTag into repository and tag, then set NewImage for deploy.
-func NewTask(cluster, name, imageWithTag, command string, baseTaskDefinition *string, timeout time.Duration, profile, region string) (*Task, error) {
+func NewTask(cluster, name, command string, baseTaskDefinition *string, timeout time.Duration, profile, region string) (*Task, error) {
 	if baseTaskDefinition == nil {
 		return nil, errors.New("task definition is required")
 	}
 	awsECS := ecs.New(session.New(), newConfig(profile, region))
 	taskDefinition := NewTaskDefinition(profile, region)
-	var newImage *Image
-	if len(imageWithTag) > 0 {
-		var err error
-		repository, tag, err := divideImageAndTag(imageWithTag)
-		if err != nil {
-			return nil, err
-		}
-		newImage = &Image{
-			*repository,
-			*tag,
-		}
-	}
 	p := shellwords.NewParser()
 	commands, err := p.Parse(command)
 	if err != nil {
@@ -76,7 +60,6 @@ func NewTask(cluster, name, imageWithTag, command string, baseTaskDefinition *st
 		Name:               name,
 		BaseTaskDefinition: baseTaskDefinition,
 		TaskDefinition:     taskDefinition,
-		NewImage:           newImage,
 		Command:            cmd,
 		Timeout:            timeout,
 	}, nil

@@ -14,6 +14,7 @@ func updateCmd() *cobra.Command {
 	command.AddCommand(
 		updateServiceCmd(),
 		updateTaskDefinitionCmd(),
+		updateScheduledTaskCmd(),
 	)
 
 	return command

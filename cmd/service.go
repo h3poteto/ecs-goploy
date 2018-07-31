@@ -24,8 +24,8 @@ func updateServiceCmd() *cobra.Command {
 	s := &updateService{}
 	cmd := &cobra.Command{
 		Use:   "service",
-		Short: "Service deploy to ECS",
-		Run:   s.service,
+		Short: "Deploy an ECS Service",
+		Run:   s.update,
 	}
 
 	flags := cmd.Flags()
@@ -42,7 +42,7 @@ func updateServiceCmd() *cobra.Command {
 	return cmd
 }
 
-func (s *updateService) service(cmd *cobra.Command, args []string) {
+func (s *updateService) update(cmd *cobra.Command, args []string) {
 	var baseTaskDefinition *string
 	if len(s.taskDefinition) > 0 {
 		baseTaskDefinition = &s.taskDefinition

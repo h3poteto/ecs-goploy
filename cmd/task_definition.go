@@ -19,7 +19,7 @@ func updateTaskDefinitionCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "task-definition",
 		Short: "Create a new revision of the task definiition",
-		RunE:  n.create,
+		RunE:  n.update,
 	}
 
 	flags := cmd.Flags()
@@ -31,7 +31,7 @@ func updateTaskDefinitionCmd() *cobra.Command {
 	return cmd
 }
 
-func (n *updateTaskDefinition) create(cmd *cobra.Command, args []string) error {
+func (n *updateTaskDefinition) update(cmd *cobra.Command, args []string) error {
 	var baseTaskDefinition *string
 	if len(n.baseTaskDefinition) > 0 {
 		baseTaskDefinition = &n.baseTaskDefinition
