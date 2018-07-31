@@ -9,8 +9,6 @@ type updateScheduledTask struct {
 	name           string
 	taskDefinition string
 	count          int64
-	profile        string
-	region         string
 }
 
 func updateScheduledTaskCmd() *cobra.Command {
@@ -34,6 +32,7 @@ func (s *updateScheduledTask) update(cmd *cobra.Command, args []string) error {
 	if len(s.taskDefinition) > 0 {
 		baseTaskDefinition = &s.taskDefinition
 	}
-	scheduledTask := ecsdeploy.NewScheduledTask(s.profile, s.region)
+	profile, region := generalConfig()
+	scheduledTask := ecsdeploy.NewScheduledTask(profile, region)
 	return scheduledTask.Update(s.name, baseTaskDefinition, s.count)
 }

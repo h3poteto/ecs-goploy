@@ -10,8 +10,6 @@ import (
 type updateTaskDefinition struct {
 	baseTaskDefinition string
 	imageWithTag       string
-	profile            string
-	region             string
 }
 
 func updateTaskDefinitionCmd() *cobra.Command {
@@ -25,8 +23,6 @@ func updateTaskDefinitionCmd() *cobra.Command {
 	flags := cmd.Flags()
 	flags.StringVarP(&n.baseTaskDefinition, "base-task-definition", "d", "", "Nmae of base task definition to create a new revision. Family and revision (family:revision) or full ARN")
 	flags.StringVarP(&n.imageWithTag, "image", "i", "", "Name of Docker image to update, ex: repo/image:latest")
-	flags.StringVarP(&n.profile, "profile", "p", "", "AWS Profile to use")
-	flags.StringVarP(&n.region, "region", "r", "", "AWS Region Name")
 
 	return cmd
 }
@@ -36,7 +32,8 @@ func (n *updateTaskDefinition) update(cmd *cobra.Command, args []string) error {
 	if len(n.baseTaskDefinition) > 0 {
 		baseTaskDefinition = &n.baseTaskDefinition
 	}
-	taskDefinition := ecsdeploy.NewTaskDefinition(n.profile, n.region)
+	profile, region := generalConfig()
+	taskDefinition := ecsdeploy.NewTaskDefinition(profile, region)
 	t, err := taskDefinition.Create(baseTaskDefinition, n.imageWithTag)
 	if err != nil {
 		log.Fatalf("[ERROR] %v", err)

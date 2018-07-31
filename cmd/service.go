@@ -13,8 +13,6 @@ type updateService struct {
 	name                 string
 	taskDefinition       string
 	imageWithTag         string
-	profile              string
-	region               string
 	timeout              int
 	enableRollback       bool
 	skipCheckDeployments bool
@@ -33,8 +31,6 @@ func updateServiceCmd() *cobra.Command {
 	flags.StringVarP(&s.name, "service-name", "n", "", "Name of service to deploy")
 	flags.StringVarP(&s.taskDefinition, "task-definition", "d", "", "Name of base task definition to deploy. Family and revision (family:revision) or full ARN")
 	flags.StringVarP(&s.imageWithTag, "image", "i", "", "Name of Docker image to run, ex: repo/image:latest")
-	flags.StringVarP(&s.profile, "profile", "p", "", "AWS Profile to use")
-	flags.StringVarP(&s.region, "region", "r", "", "AWS Region Name")
 	flags.IntVarP(&s.timeout, "timeout", "t", 300, "Timeout seconds. Script monitors ECS Service for new task definition to be running")
 	flags.BoolVar(&s.enableRollback, "enable-rollback", false, "Rollback task definition if new version is not running before TIMEOUT")
 	flags.BoolVar(&s.skipCheckDeployments, "skip-check-deployments", false, "Skip checking deployments when detect whether deploy completed")
@@ -47,7 +43,8 @@ func (s *updateService) update(cmd *cobra.Command, args []string) {
 	if len(s.taskDefinition) > 0 {
 		baseTaskDefinition = &s.taskDefinition
 	}
-	service, err := ecsdeploy.NewService(s.cluster, s.name, s.imageWithTag, baseTaskDefinition, (time.Duration(s.timeout) * time.Second), s.enableRollback, s.skipCheckDeployments, s.profile, s.region)
+	profile, region := generalConfig()
+	service, err := ecsdeploy.NewService(s.cluster, s.name, s.imageWithTag, baseTaskDefinition, (time.Duration(s.timeout) * time.Second), s.enableRollback, s.skipCheckDeployments, profile, region)
 	if err != nil {
 		log.Fatalf("[ERROR] %v", err)
 	}

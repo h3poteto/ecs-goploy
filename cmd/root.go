@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 // RootCmd root comand for cobra
@@ -14,9 +15,19 @@ var RootCmd = &cobra.Command{
 
 func init() {
 	cobra.OnInitialize()
+	RootCmd.PersistentFlags().StringP("profile", "", "", "AWS profile (detault is none, and use environment variables)")
+	RootCmd.PersistentFlags().StringP("region", "", "", "AWS region (default is none, and use AWS_DEFAULT_REGION)")
+	viper.BindPFlag("profile", RootCmd.PersistentFlags().Lookup("profile"))
+	viper.BindPFlag("region", RootCmd.PersistentFlags().Lookup("region"))
+
 	RootCmd.AddCommand(
 		versionCmd(),
 		runCmd(),
 		updateCmd(),
 	)
+}
+
+// generalConfig returns profile, and region.
+func generalConfig() (string, string) {
+	return viper.GetString("profile"), viper.GetString("region")
 }
