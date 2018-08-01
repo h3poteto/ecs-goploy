@@ -12,7 +12,7 @@ import (
 type updateService struct {
 	cluster              string
 	name                 string
-	taskDefinition       string
+	baseTaskDefinition   string
 	imageWithTag         string
 	timeout              int
 	enableRollback       bool
@@ -30,7 +30,7 @@ func updateServiceCmd() *cobra.Command {
 	flags := cmd.Flags()
 	flags.StringVarP(&s.cluster, "cluster", "c", "", "Name of ECS cluster")
 	flags.StringVarP(&s.name, "service-name", "n", "", "Name of service to deploy")
-	flags.StringVarP(&s.taskDefinition, "task-definition", "d", "", "Name of base task definition to deploy. Family and revision (family:revision) or full ARN")
+	flags.StringVarP(&s.baseTaskDefinition, "base-task-definition", "d", "", "Name of base task definition to deploy. Family and revision (family:revision) or full ARN. Default is none, and use current service's task definition")
 	flags.StringVarP(&s.imageWithTag, "image", "i", "", "Name of Docker image to run, ex: repo/image:latest")
 	flags.IntVarP(&s.timeout, "timeout", "t", 300, "Timeout seconds. Script monitors ECS Service for new task definition to be running")
 	flags.BoolVar(&s.enableRollback, "enable-rollback", false, "Rollback task definition if new version is not running before TIMEOUT")
@@ -41,8 +41,8 @@ func updateServiceCmd() *cobra.Command {
 
 func (s *updateService) update(cmd *cobra.Command, args []string) {
 	var baseTaskDefinition *string
-	if len(s.taskDefinition) > 0 {
-		baseTaskDefinition = &s.taskDefinition
+	if len(s.baseTaskDefinition) > 0 {
+		baseTaskDefinition = &s.baseTaskDefinition
 	}
 	profile, region, verbose := generalConfig()
 	if !verbose {

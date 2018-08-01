@@ -94,7 +94,9 @@ func (s *ScheduledTask) UpdateTargets(taskCount int64, taskDefinition *ecs.TaskD
 	if err != nil {
 		return err
 	}
+
 	for _, target := range targets {
+		log.Infof("Event target: %s", *target.Arn)
 		err := s.update(taskCount, taskDefinition, target, rule.Name)
 		if err != nil {
 			return err

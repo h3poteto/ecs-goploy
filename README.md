@@ -22,65 +22,59 @@ $ ./ecs-goploy --help
 ```
 
 # Usage
-## Deploy an ECS Service
-
 
 ```
-$ ./ecs-goploy update service --help
-Deploy an ECS Service
+$ ./ecs-goploy --help
+Deploy commands for ECS
 
 Usage:
-  ecs-goploy update service [flags]
+  ecs-goploy [command]
+
+Available Commands:
+  help        Help about any command
+  run         Run command
+  update      Update some ECS resource
+  version     Print the version number
 
 Flags:
-  -c, --cluster string           Name of ECS cluster
-      --enable-rollback          Rollback task definition if new version is not running before TIMEOUT
-  -h, --help                     help for service
-  -i, --image string             Name of Docker image to run, ex: repo/image:latest
-  -p, --profile string           AWS Profile to use
-  -r, --region string            AWS Region Name
-  -n, --service-name string      Name of service to deploy
-      --skip-check-deployments   Skip checking deployments when detect whether deploy completed
-  -d, --task-definition string   Name of base task definition to deploy. Family and revision (family:revision) or full ARN
-  -t, --timeout int              Timeout seconds. Script monitors ECS Service for new task definition to be running (default 300)
+  -h, --help             help for ecs-goploy
+      --profile string   AWS profile (detault is none, and use environment variables)
+      --region string    AWS region (default is none, and use AWS_DEFAULT_REGION)
+  -v, --verbose          Enable verbose mode
+
+Use "ecs-goploy [command] --help" for more information about a command.
 ```
+
+## Deploy an ECS Service
+
+Please specify cluser, service name and image(family:revision).
+
+```
+$ ./ecs-goploy update service --cluster my-cluster --service-name my-service --image nginx:stable --skip-check-deployments --enable-rollback
+```
+
+If you specify `--base-task-definition`, ecs-goploy updates the task definition with the image and deploy ecs service.
+If you does not specify `--base-task-definition`, ecs-goploy get current task definition of the service, and update with the image, and deploy ecs service.
 
 ## Run Task
 
+At first, you must update the task definition which is used to run ecs task.
+After that, you can run ecs task.
+
 ```
-$ ./ecs-goploy run task --help
-Run task on ECS
-
-Usage:
-  ecs-goploy run task [flags]
-
-Flags:
-  -c, --cluster string           Name of ECS cluster
-      --command string           Task command which run on ECS
-  -n, --container-name string    Name of the container for override task definition
-  -h, --help                     help for task
-  -p, --profile string           AWS Profile to use
-  -r, --region string            AWS Region Name
-  -d, --task-definition string   Name of task definition to run task. Family and revision (family:revision) or full ARN
-  -t, --timeout int              Timeout seconds (default 300)
+$ NEW_TASK_DEFINITION=`./ecs-goploy --base-task-definition my-task-definition:1 --image nginx:stable`
+$ ./ecs-goploy run task --cluster my-cluster --container-name web --task-definition $NEW_TASK_DEFINITION --command "some commands"
 ```
 
 ## Update Scheduled Task
 
+At first, you must update the task definition which is used to run scheduled task.
+After that, you can update the scheduled task.
+
 ```
-$ ./ecs-goploy update scheduled-task --help
-Update ECS Scheduled Task
-
-Usage:
-  ecs-goploy update scheduled-task [flags]
-
-Flags:
-  -c, --count int                Count of the task (default 1)
-  -h, --help                     help for scheduled-task
-  -n, --name string              Name of scheduled task
-  -d, --task-definition string   Name of task definition to update scheduled task. Family and revision (family:revision) or full ARN
+$ NEW_TASK_DEFINITION=`./ecs-goploy --base-task-definition my-task-definition:1 --image nginx:stable`
+$ ./ecs-goploy update scheduled-task --count 1 --name schedule-name --task-definition $NEW_TASK_DEFINITION
 ```
-
 
 # Configuration
 ## AWS Configuration
