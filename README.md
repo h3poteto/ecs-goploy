@@ -120,6 +120,9 @@ Below is a basic IAM Policy required for ecs-goploy.
         "ecs:RunTask",
         "ecs:DescribeTasks",
         "ecs:ListTasks",
+        "events:DescribeRule",
+        "events:ListTargetsByRule",
+        "events:PutTargets",
         "iam:PassRole"
       ],
       "Resource": "*"
