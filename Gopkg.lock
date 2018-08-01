@@ -131,6 +131,14 @@
   version = "v0.8.0"
 
 [[projects]]
+  digest = "1:3fcbf733a8d810a21265a7f2fe08a3353db2407da052b233f8b204b5afc03d9b"
+  name = "github.com/sirupsen/logrus"
+  packages = ["."]
+  pruneopts = ""
+  revision = "3e01752db0189b9157070a0e1668a620f9a85da2"
+  version = "v1.0.6"
+
+[[projects]]
   digest = "1:7ba2551c9a8de293bc575dbe2c0d862c52252d26f267f784547f059f512471c8"
   name = "github.com/spf13/afero"
   packages = [
@@ -183,9 +191,20 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:cae234a803b78380e4d769db6036b9fcc8c08ed4ff862571ffc1a958edc1f629"
+  name = "golang.org/x/crypto"
+  packages = ["ssh/terminal"]
+  pruneopts = ""
+  revision = "c126467f60eb25f8f27e5a981f32a87e3965053f"
+
+[[projects]]
+  branch = "master"
   digest = "1:dd631ee90bd2e7aa16b6e094217d77a797684b52811374c948c695cbb46b5bbb"
   name = "golang.org/x/sys"
-  packages = ["unix"]
+  packages = [
+    "unix",
+    "windows",
+  ]
   pruneopts = ""
   revision = "bd9dbc187b6e1dacfdd2722a87e83093c2d7bd6e"
 
@@ -227,6 +246,7 @@
     "github.com/aws/aws-sdk-go/service/ecs/ecsiface",
     "github.com/mattn/go-shellwords",
     "github.com/pkg/errors",
+    "github.com/sirupsen/logrus",
     "github.com/spf13/cobra",
     "github.com/spf13/viper",
   ]

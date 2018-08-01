@@ -1,10 +1,11 @@
 package cmd
 
 import (
-	"log"
+	"fmt"
 	"time"
 
 	ecsdeploy "github.com/h3poteto/ecs-goploy/deploy"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -40,13 +41,16 @@ func (t *runTask) run(cmd *cobra.Command, args []string) {
 	if len(t.taskDefinition) > 0 {
 		baseTaskDefinition = &t.taskDefinition
 	}
-	profile, region := generalConfig()
-	task, err := ecsdeploy.NewTask(t.cluster, t.name, t.command, baseTaskDefinition, (time.Duration(t.timeout) * time.Second), profile, region)
+	profile, region, verbose := generalConfig()
+	if !verbose {
+		log.SetLevel(log.ErrorLevel)
+	}
+	task, err := ecsdeploy.NewTask(t.cluster, t.name, t.command, baseTaskDefinition, (time.Duration(t.timeout) * time.Second), profile, region, verbose)
 	if err != nil {
-		log.Fatalf("[ERROR] %v", err)
+		log.Fatal(err)
 	}
 	if _, err := task.Run(); err != nil {
-		log.Fatalf("[ERROR] %v", err)
+		log.Fatal(err)
 	}
-	log.Println("[INFO] Task success")
+	fmt.Println("Success to run task")
 }

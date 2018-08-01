@@ -1,14 +1,13 @@
 package deploy
 
 import (
-	"log"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	events "github.com/aws/aws-sdk-go/service/cloudwatchevents"
 	eventsiface "github.com/aws/aws-sdk-go/service/cloudwatchevents/cloudwatcheventsiface"
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 )
 
 // ScheduledTask has target task definition information and client of aws-sdk-go.
@@ -17,15 +16,21 @@ type ScheduledTask struct {
 
 	// TaskDefinition struct to call aws API.
 	TaskDefinition *TaskDefinition
+
+	verbose bool
 }
 
 // NewScheduledTask returns a nwe ScheduledTask struct, and initialize aws cloudwatchevents API client.
-func NewScheduledTask(profile, region string) *ScheduledTask {
+func NewScheduledTask(profile, region string, verbose bool) *ScheduledTask {
 	awsCloudWatchEvents := events.New(session.New(), newConfig(profile, region))
-	taskDefinition := NewTaskDefinition(profile, region)
+	taskDefinition := NewTaskDefinition(profile, region, verbose)
+	if !verbose {
+		log.SetLevel(log.ErrorLevel)
+	}
 	return &ScheduledTask{
 		awsCloudWatchEvents,
 		taskDefinition,
+		verbose,
 	}
 }
 
@@ -72,7 +77,7 @@ func (s *ScheduledTask) update(taskCount int64, taskDefinition *ecs.TaskDefiniti
 	}
 	if *resp.FailedEntryCount > 0 {
 		for _, e := range resp.FailedEntries {
-			log.Printf("[ERROR] Failed to update the entry: %+v\n", *e)
+			log.Errorf("Failed to update the entry: %+v", *e)
 		}
 		return errors.New("Failed to update entries")
 	}

@@ -1,10 +1,11 @@
 package cmd
 
 import (
-	"log"
+	"fmt"
 	"time"
 
 	ecsdeploy "github.com/h3poteto/ecs-goploy/deploy"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -43,13 +44,16 @@ func (s *updateService) update(cmd *cobra.Command, args []string) {
 	if len(s.taskDefinition) > 0 {
 		baseTaskDefinition = &s.taskDefinition
 	}
-	profile, region := generalConfig()
-	service, err := ecsdeploy.NewService(s.cluster, s.name, s.imageWithTag, baseTaskDefinition, (time.Duration(s.timeout) * time.Second), s.enableRollback, s.skipCheckDeployments, profile, region)
+	profile, region, verbose := generalConfig()
+	if !verbose {
+		log.SetLevel(log.ErrorLevel)
+	}
+	service, err := ecsdeploy.NewService(s.cluster, s.name, s.imageWithTag, baseTaskDefinition, (time.Duration(s.timeout) * time.Second), s.enableRollback, s.skipCheckDeployments, profile, region, verbose)
 	if err != nil {
-		log.Fatalf("[ERROR] %v", err)
+		log.Fatal(err)
 	}
 	if err := service.Deploy(); err != nil {
-		log.Fatalf("[ERROR] %v", err)
+		log.Fatal(err)
 	}
-	log.Println("[INFO] Deploy success")
+	fmt.Println("Deploy success")
 }

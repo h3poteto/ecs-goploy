@@ -2,7 +2,6 @@ package deploy
 
 import (
 	"context"
-	"log"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -11,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ecs/ecsiface"
 	"github.com/mattn/go-shellwords"
 	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 )
 
 // Task has target ECS information, client of aws-sdk-go, command and timeout seconds.
@@ -35,15 +35,20 @@ type Task struct {
 	// Wait time when run task.
 	// This script monitors ECS task for new task definition to be running after call run task API.
 	Timeout time.Duration
+
+	verbose bool
 }
 
 // NewTask returns a new Task struct, and initialize aws ecs API client.
-func NewTask(cluster, name, command string, baseTaskDefinition *string, timeout time.Duration, profile, region string) (*Task, error) {
+func NewTask(cluster, name, command string, baseTaskDefinition *string, timeout time.Duration, profile, region string, verbose bool) (*Task, error) {
 	if baseTaskDefinition == nil {
 		return nil, errors.New("task definition is required")
 	}
 	awsECS := ecs.New(session.New(), newConfig(profile, region))
-	taskDefinition := NewTaskDefinition(profile, region)
+	taskDefinition := NewTaskDefinition(profile, region, verbose)
+	if !verbose {
+		log.SetLevel(log.ErrorLevel)
+	}
 	p := shellwords.NewParser()
 	commands, err := p.Parse(command)
 	if err != nil {
@@ -62,6 +67,7 @@ func NewTask(cluster, name, command string, baseTaskDefinition *string, timeout 
 		TaskDefinition:     taskDefinition,
 		Command:            cmd,
 		Timeout:            timeout,
+		verbose:            verbose,
 	}, nil
 }
 
@@ -91,10 +97,10 @@ func (t *Task) RunTask(taskDefinition *ecs.TaskDefinition) ([]*ecs.Task, error) 
 		return nil, err
 	}
 	if len(resp.Failures) > 0 {
-		log.Printf("[ERROR] Run task error: %+v\n", resp.Failures)
+		log.Errorf("Run task error: %+v", resp.Failures)
 		return nil, errors.New(*resp.Failures[0].Reason)
 	}
-	log.Printf("[INFO] Running tasks: %+v\n", resp.Tasks)
+	log.Infof("Running tasks: %+v", resp.Tasks)
 
 	err = t.waitRunning(ctx, resp.Tasks)
 	if err != nil {
@@ -105,7 +111,7 @@ func (t *Task) RunTask(taskDefinition *ecs.TaskDefinition) ([]*ecs.Task, error) 
 
 // waitRunning waits a task running.
 func (t *Task) waitRunning(ctx context.Context, tasks []*ecs.Task) error {
-	log.Println("[INFO] Waiting for running task...")
+	log.Info("Waiting for running task...")
 
 	taskArns := []*string{}
 	for _, task := range tasks {
@@ -126,7 +132,7 @@ func (t *Task) waitRunning(ctx context.Context, tasks []*ecs.Task) error {
 			return err
 		}
 	case <-done:
-		log.Println("[INFO] Run task is success")
+		log.Info("Run task is success")
 	case <-ctx.Done():
 		return errors.New("process timeout")
 	}

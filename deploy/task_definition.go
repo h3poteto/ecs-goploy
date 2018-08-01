@@ -10,13 +10,16 @@ import (
 // TaskDefinition has image and task definition information.
 type TaskDefinition struct {
 	awsECS ecsiface.ECSAPI
+
+	verbose bool
 }
 
 // NewTaskDefinition initializes aws ecs API client, and returns a task definition struct.
-func NewTaskDefinition(profile, region string) *TaskDefinition {
+func NewTaskDefinition(profile, region string, verbose bool) *TaskDefinition {
 	awsECS := ecs.New(session.New(), newConfig(profile, region))
 	return &TaskDefinition{
 		awsECS,
+		verbose,
 	}
 }
 

@@ -1,9 +1,10 @@
 package cmd
 
 import (
-	"log"
+	"fmt"
 
 	ecsdeploy "github.com/h3poteto/ecs-goploy/deploy"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -32,13 +33,16 @@ func (n *updateTaskDefinition) update(cmd *cobra.Command, args []string) error {
 	if len(n.baseTaskDefinition) > 0 {
 		baseTaskDefinition = &n.baseTaskDefinition
 	}
-	profile, region := generalConfig()
-	taskDefinition := ecsdeploy.NewTaskDefinition(profile, region)
+	profile, region, verbose := generalConfig()
+	if !verbose {
+		log.SetLevel(log.ErrorLevel)
+	}
+	taskDefinition := ecsdeploy.NewTaskDefinition(profile, region, verbose)
 	t, err := taskDefinition.Create(baseTaskDefinition, n.imageWithTag)
 	if err != nil {
-		log.Fatalf("[ERROR] %v", err)
+		log.Fatal(err)
 		return err
 	}
-	log.Println(*t.TaskDefinitionArn)
+	fmt.Println(*t.TaskDefinitionArn)
 	return nil
 }

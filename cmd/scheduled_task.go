@@ -1,7 +1,10 @@
 package cmd
 
 import (
+	"fmt"
+
 	ecsdeploy "github.com/h3poteto/ecs-goploy/deploy"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -32,7 +35,16 @@ func (s *updateScheduledTask) update(cmd *cobra.Command, args []string) error {
 	if len(s.taskDefinition) > 0 {
 		baseTaskDefinition = &s.taskDefinition
 	}
-	profile, region := generalConfig()
-	scheduledTask := ecsdeploy.NewScheduledTask(profile, region)
-	return scheduledTask.Update(s.name, baseTaskDefinition, s.count)
+	profile, region, verbose := generalConfig()
+	if !verbose {
+		log.SetLevel(log.ErrorLevel)
+	}
+	scheduledTask := ecsdeploy.NewScheduledTask(profile, region, verbose)
+	err := scheduledTask.Update(s.name, baseTaskDefinition, s.count)
+	if err != nil {
+		log.Fatal(err)
+		return err
+	}
+	fmt.Println("Success to update the schedule")
+	return nil
 }
