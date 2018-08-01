@@ -11,7 +11,7 @@ When you want to update service in ECS, please use this package as follows.
 
 Construct a new Service, then use deploy functions.
 
-    s, err := deploy.NewService("cluster", "service-name", "nginx:stable", nil, 5 * time.Minute, true, "", "")
+    s, err := deploy.NewService("cluster", "service-name", "nginx:stable", nil, 5 * time.Minute, true, "", "", true)
     if err != nil {
         log.Fatalf("[ERROR] %v", err)
     }
@@ -25,7 +25,7 @@ Or you can write a custom deploy recipe as you like.
 
 For example:
 
-    s, err := deploy.NewService("cluster", "service-name", "nginx:stable", nil, 5 * time.Minute, true, "", "")
+    s, err := deploy.NewService("cluster", "service-name", "nginx:stable", nil, 5 * time.Minute, true, "", "", true)
     if err != nil {
         log.Fatal(err)
     }
@@ -53,13 +53,27 @@ For example:
     }
     log.Println("[INFO] Deploy success")
 
+TaskDefinition update
+
+You can create a new revision of the task definition. Please use this task definition at `Task` and `ScheduledTask`.
+
+For example:
+
+    taskDefinition := ecsdeploy.NewTaskDefinition("", "", true)
+    t, err := taskDefinition.Create("sample-task-definition:revision", "nginx:stable")
+    if err != nil {
+        log.Fatal(err)
+    }
+    log.Println(*t.TaskDefinitionArn)
+
+
 Run task
 
 When you want to run task on ECS at once, plese use this package as follows.
 
 For example:
 
-    task, err := ecsdeploy.NewTask("cluster", "container-name", "nginx:stable", "echo hoge", "sample-task-definition:1", (5 * time.Minute), "", "")
+    task, err := ecsdeploy.NewTask("cluster", "container-name", "echo hoge", "sample-task-definition:2", (5 * time.Minute), "", "", true)
     if err != nil {
         log.Fatal(err)
     }
@@ -68,15 +82,25 @@ For example:
     }
     log.Println("[INFO] Task success")
 
+
+ScheduledTask update
+
+When you update the ECS Scheduled Task, please use this package.
+
+For example:
+
+    scheduledTask := ecsdeploy.NewScheduledTask("", "", true)
+    scheduledTask("schedule-name", "sample-task-definition:2", 1)
+
 */
 package deploy
 
 import (
-	"log"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 )
 
 // Image has repository and tag string of docker image.
@@ -116,18 +140,18 @@ func (s *Service) Deploy() error {
 	if err != nil {
 		return errors.Wrap(err, "Can not regist new task definition: ")
 	}
-	log.Printf("[INFO] New task definition: %+v\n", newTaskDefinition)
+	log.Infof("New task definition: %+v", newTaskDefinition)
 
 	err = s.UpdateService(service, newTaskDefinition)
 	if err != nil {
-		log.Println("[INFO] update failed")
+		log.Info("update failed")
 		updateError := errors.Wrap(err, "Can not update service: ")
 		if !s.EnableRollback {
 			return updateError
 		}
 
 		// rollback to the current task definition which have been running to the end
-		log.Printf("[INFO] Rolling back to: %+v\n", currentTaskDefinition)
+		log.Infof("Rolling back to: %+v", currentTaskDefinition)
 		if err := s.Rollback(service, currentTaskDefinition); err != nil {
 			return errors.Wrap(updateError, err.Error())
 		}
@@ -181,7 +205,21 @@ func (n *TaskDefinition) Create(base *string, dockerImage string) (*ecs.TaskDefi
 	if err != nil {
 		return nil, err
 	}
-	log.Printf("[INFO] New task definition: %+v\n", newTaskDefinition)
+	log.Infof("New task definition: %+v", newTaskDefinition)
 
 	return newTaskDefinition, nil
+}
+
+// Update update the cloudwatch event with provided task definition.
+func (s *ScheduledTask) Update(name string, taskDefinition *string, count int64) error {
+	if taskDefinition == nil {
+		return errors.New("task definition is required")
+	}
+	// get a task definition
+	t, err := s.TaskDefinition.DescribeTaskDefinition(*taskDefinition)
+	if err != nil {
+		return err
+	}
+
+	return s.UpdateTargets(count, t, name)
 }

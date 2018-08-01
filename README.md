@@ -24,7 +24,7 @@ $ ./ecs-goploy --help
 # Usage
 
 ```
-$ ./ecs-goploy help
+$ ./ecs-goploy --help
 Deploy commands for ECS
 
 Usage:
@@ -32,61 +32,48 @@ Usage:
 
 Available Commands:
   help        Help about any command
-  service     Service deploy to ECS
-  task        Run task on ECS
+  run         Run command
+  update      Update some ECS resource
   version     Print the version number
 
 Flags:
-  -h, --help   help for ecs-goploy
+  -h, --help             help for ecs-goploy
+      --profile string   AWS profile (detault is none, and use environment variables)
+      --region string    AWS region (default is none, and use AWS_DEFAULT_REGION)
+  -v, --verbose          Enable verbose mode
 
 Use "ecs-goploy [command] --help" for more information about a command.
+```
 
-$ ./ecs-goploy service --help
-Service deploy to ECS
+## Deploy an ECS Service
 
-Usage:
-  ecs-goploy service [flags]
+Please specify cluser, service name and image(family:revision).
 
-Flags:
-  -c, --cluster string           Name of ECS cluster
-      --enable-rollback          Rollback task definition if new version is not running before TIMEOUT
-  -h, --help                     help for service
-  -i, --image string             Name of Docker image to run, ex: repo/image:latest
-  -p, --profile string           AWS Profile to use
-  -r, --region string            AWS Region Name
-  -n, --service-name string      Name of service to deploy
-  -d, --task-definition string   Name of base task definition to deploy. Family and revision (family:revision) or full ARN
-  -t, --timeout int              Timeout seconds. Script monitors ECS Service for new task definition to be running (default 300)
+```
+$ ./ecs-goploy update service --cluster my-cluster --service-name my-service --image nginx:stable --skip-check-deployments --enable-rollback
+```
 
-$ ./ecs-goploy task --help                                                                                                                                                              [master]
-Run task on ECS
+If you specify `--base-task-definition`, ecs-goploy updates the task definition with the image and deploy ecs service.
+If you does not specify `--base-task-definition`, ecs-goploy get current task definition of the service, and update with the image, and deploy ecs service.
 
-Usage:
-  ecs-goploy task [flags]
+## Run Task
 
-Flags:
-  -c, --cluster string           Name of ECS cluster
-      --command string           Task command which run on ECS
-  -n, --container-name string    Name of the container for override task definition
-  -h, --help                     help for task
-  -i, --image string             Name of Doker image to run, ex: repo/image:latest
-  -p, --profile string           AWS Profile to use
-  -r, --region string            AWS Region Name
-  -d, --task-definition string   Name of base task definition to run task. Family and revision (family:revision) or full ARN
-  -t, --timeout int              Timeout seconds (default 300)
+At first, you must update the task definition which is used to run ecs task.
+After that, you can run ecs task.
 
-$ ./ecs-goploy task-definition new --help
-Create a new revision of the task definiition
+```
+$ NEW_TASK_DEFINITION=`./ecs-goploy --base-task-definition my-task-definition:1 --image nginx:stable`
+$ ./ecs-goploy run task --cluster my-cluster --container-name web --task-definition $NEW_TASK_DEFINITION --command "some commands"
+```
 
-Usage:
-  ecs-goploy task-definition new [flags]
+## Update Scheduled Task
 
-Flags:
-  -d, --base-task-definition string   Nmae of base task definition to create a new revision. Family and revision (family:revision) or full ARN
-  -h, --help                          help for new
-  -i, --image string                  Name of Docker image to update, ex: repo/image:latest
-  -p, --profile string                AWS Profile to use
-  -r, --region string                 AWS Region Name
+At first, you must update the task definition which is used to run scheduled task.
+After that, you can update the scheduled task.
+
+```
+$ NEW_TASK_DEFINITION=`./ecs-goploy --base-task-definition my-task-definition:1 --image nginx:stable`
+$ ./ecs-goploy update scheduled-task --count 1 --name schedule-name --task-definition $NEW_TASK_DEFINITION
 ```
 
 # Configuration
@@ -133,6 +120,9 @@ Below is a basic IAM Policy required for ecs-goploy.
         "ecs:RunTask",
         "ecs:DescribeTasks",
         "ecs:ListTasks",
+        "events:DescribeRule",
+        "events:ListTargetsByRule",
+        "events:PutTargets",
         "iam:PassRole"
       ],
       "Resource": "*"

@@ -2,7 +2,6 @@ package deploy
 
 import (
 	"context"
-	"log"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -10,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/aws/aws-sdk-go/service/ecs/ecsiface"
 	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 )
 
 // Service has target ECS information, client of aws-sdk-go, tasks information and timeout seconds.
@@ -41,13 +41,18 @@ type Service struct {
 	// When check whether deploy completed, confirm only new task status.
 	// If this flag is true, confirm service deployments status.
 	SkipCheckDeployments bool
+
+	verbose bool
 }
 
 // NewService returns a new Service struct, and initialize aws ecs API client.
 // Separates imageWithTag into repository and tag, then sets a NewImage for deploy.
-func NewService(cluster, name, imageWithTag string, baseTaskDefinition *string, timeout time.Duration, enableRollback bool, skipCheckDeployments bool, profile, region string) (*Service, error) {
+func NewService(cluster, name, imageWithTag string, baseTaskDefinition *string, timeout time.Duration, enableRollback bool, skipCheckDeployments bool, profile, region string, verbose bool) (*Service, error) {
 	awsECS := ecs.New(session.New(), newConfig(profile, region))
-	taskDefinition := NewTaskDefinition(profile, region)
+	taskDefinition := NewTaskDefinition(profile, region, verbose)
+	if !verbose {
+		log.SetLevel(log.ErrorLevel)
+	}
 	var newImage *Image
 	if len(imageWithTag) > 0 {
 		var err error
@@ -70,6 +75,7 @@ func NewService(cluster, name, imageWithTag string, baseTaskDefinition *string, 
 		timeout,
 		enableRollback,
 		skipCheckDeployments,
+		verbose,
 	}, nil
 }
 
@@ -114,7 +120,7 @@ func (s *Service) UpdateService(service *ecs.Service, taskDefinition *ecs.TaskDe
 
 // waitUpdating waits the new task definition is deployed.
 func (s *Service) waitUpdating(ctx context.Context, newTaskDefinition *ecs.TaskDefinition) error {
-	log.Println("[INFO] Waiting for new task running...")
+	log.Info("Waiting for new task running...")
 	errCh := make(chan error, 1)
 	done := make(chan struct{}, 1)
 	go func() {
@@ -130,7 +136,7 @@ func (s *Service) waitUpdating(ctx context.Context, newTaskDefinition *ecs.TaskD
 			return err
 		}
 	case <-done:
-		log.Println("[INFO] New task is running")
+		log.Info("New task is running")
 	case <-ctx.Done():
 		return errors.New("process timeout")
 	}
@@ -173,22 +179,22 @@ func (s *Service) checkDeployments(deployments []*ecs.Deployment, newTaskDefinit
 
 func (s *Service) checkNewTaskRunning(service *ecs.Service, newTaskDefinition *ecs.TaskDefinition) bool {
 	input := &ecs.ListTasksInput{
-		Cluster: service.ClusterArn,
-		ServiceName: service.ServiceName,
+		Cluster:       service.ClusterArn,
+		ServiceName:   service.ServiceName,
 		DesiredStatus: aws.String("RUNNING"),
 	}
 	runningTasks, err := s.awsECS.ListTasks(input)
 	if err != nil {
-		log.Printf("[ERROR] %v", err)
+		log.Error(err)
 		return false
 	}
 	params := &ecs.DescribeTasksInput{
 		Cluster: service.ClusterArn,
-		Tasks: runningTasks.TaskArns,
+		Tasks:   runningTasks.TaskArns,
 	}
 	resp, err := s.awsECS.DescribeTasks(params)
 	if err != nil {
-		log.Printf("[ERROR] %v", err)
+		log.Error(err)
 		return false
 	}
 	for _, task := range resp.Tasks {
@@ -217,6 +223,6 @@ func (s *Service) Rollback(service *ecs.Service, currentTaskDefinition *ecs.Task
 	if err != nil {
 		return err
 	}
-	log.Println("[INFO] Rolled back")
+	log.Info("Rolled back")
 	return nil
 }
