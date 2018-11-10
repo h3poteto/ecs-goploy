@@ -8,7 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/aws/aws-sdk-go/service/ecs/ecsiface"
-	"github.com/mattn/go-shellwords"
+	shellwords "github.com/mattn/go-shellwords"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
@@ -174,7 +174,7 @@ retry:
 }
 
 func (t *Task) checkTaskStopped(task *ecs.Task) bool {
-	if *task.DesiredStatus != "STOPPED" {
+	if *task.LastStatus != "STOPPED" {
 		return false
 	}
 	return true
