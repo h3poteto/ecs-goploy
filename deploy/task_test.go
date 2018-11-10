@@ -46,7 +46,7 @@ func TestRunTask(t *testing.T) {
 	describe := ecs.DescribeTasksOutput{
 		Tasks: []*ecs.Task{
 			&ecs.Task{
-				DesiredStatus: aws.String("STOPPED"),
+				LastStatus: aws.String("STOPPED"),
 				Containers: []*ecs.Container{
 					&ecs.Container{
 						ExitCode: aws.Int64(0),
