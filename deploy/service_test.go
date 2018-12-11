@@ -57,7 +57,8 @@ func (m mockedUpdateService) DescribeServices(in *ecs.DescribeServicesInput) (*e
 
 func TestUpdateService(t *testing.T) {
 	s := &ecs.Service{
-		ServiceName: aws.String("dummy-service"),
+		ServiceName:        aws.String("dummy-service"),
+		SchedulingStrategy: aws.String("REPLICA"),
 	}
 	newTaskDefinition := &ecs.TaskDefinition{
 		TaskDefinitionArn: aws.String("task-definition-arn"),

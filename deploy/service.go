@@ -97,12 +97,23 @@ func (s *Service) DescribeService() (*ecs.Service, error) {
 
 // UpdateService updates the service with a new task definition, and wait during update action.
 func (s *Service) UpdateService(service *ecs.Service, taskDefinition *ecs.TaskDefinition) error {
-	params := &ecs.UpdateServiceInput{
-		Service:                 aws.String(s.Name),
-		Cluster:                 aws.String(s.Cluster),
-		DeploymentConfiguration: service.DeploymentConfiguration,
-		DesiredCount:            service.DesiredCount,
-		TaskDefinition:          taskDefinition.TaskDefinitionArn,
+	params := &ecs.UpdateServiceInput{}
+	if *service.SchedulingStrategy == "DAEMON" {
+		// If the service type is DAEMON, we can not specify desired count.
+		params = &ecs.UpdateServiceInput{
+			Service:                 aws.String(s.Name),
+			Cluster:                 aws.String(s.Cluster),
+			DeploymentConfiguration: service.DeploymentConfiguration,
+			TaskDefinition:          taskDefinition.TaskDefinitionArn,
+		}
+	} else {
+		params = &ecs.UpdateServiceInput{
+			Service:                 aws.String(s.Name),
+			Cluster:                 aws.String(s.Cluster),
+			DeploymentConfiguration: service.DeploymentConfiguration,
+			DesiredCount:            service.DesiredCount,
+			TaskDefinition:          taskDefinition.TaskDefinitionArn,
+		}
 	}
 	resp, err := s.awsECS.UpdateService(params)
 	if err != nil {
