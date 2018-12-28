@@ -172,11 +172,11 @@ func divideImageAndTag(imageWithTag string) (*string, *string, error) {
 
 //Run run task on ECS based on provided task definition.
 func (t *Task) Run() ([]*ecs.Task, error) {
-	if t.BaseTaskDefinition == nil {
+	if t.BaseTaskDefinition == "" {
 		return nil, errors.New("task definition is required")
 	}
 	// get a task definition
-	baseTaskDefinition, err := t.TaskDefinition.DescribeTaskDefinition(*t.BaseTaskDefinition)
+	baseTaskDefinition, err := t.TaskDefinition.DescribeTaskDefinition(t.BaseTaskDefinition)
 	if err != nil {
 		return nil, err
 	}
