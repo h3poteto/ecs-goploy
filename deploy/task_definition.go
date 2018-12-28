@@ -51,12 +51,18 @@ func (d *TaskDefinition) RegisterTaskDefinition(baseDefinition *ecs.TaskDefiniti
 		containerDefinitions = append(containerDefinitions, newDefinition)
 	}
 	params := &ecs.RegisterTaskDefinitionInput{
-		ContainerDefinitions: containerDefinitions,
-		Family:               baseDefinition.Family,
-		NetworkMode:          baseDefinition.NetworkMode,
-		PlacementConstraints: baseDefinition.PlacementConstraints,
-		TaskRoleArn:          baseDefinition.TaskRoleArn,
-		Volumes:              baseDefinition.Volumes,
+		ContainerDefinitions:    containerDefinitions,
+		Cpu:                     baseDefinition.Cpu,
+		ExecutionRoleArn:        baseDefinition.ExecutionRoleArn,
+		Family:                  baseDefinition.Family,
+		IpcMode:                 baseDefinition.IpcMode,
+		Memory:                  baseDefinition.Memory,
+		NetworkMode:             baseDefinition.NetworkMode,
+		PidMode:                 baseDefinition.PidMode,
+		PlacementConstraints:    baseDefinition.PlacementConstraints,
+		RequiresCompatibilities: baseDefinition.RequiresCompatibilities,
+		TaskRoleArn:             baseDefinition.TaskRoleArn,
+		Volumes:                 baseDefinition.Volumes,
 	}
 
 	resp, err := d.awsECS.RegisterTaskDefinition(params)
