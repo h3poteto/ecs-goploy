@@ -16,8 +16,8 @@ Please check [godoc](https://godoc.org/github.com/h3poteto/ecs-goploy/deploy).
 Get binary from github:
 
 ```
-$ wget https://github.com/h3poteto/ecs-goploy/releases/download/v0.3.4/ecs-goploy_v0.3.4_linux_amd64.zip
-$ unzip ecs-goploy_v0.3.4_linux_amd64.zip
+$ wget https://github.com/h3poteto/ecs-goploy/releases/download/v0.5.0/ecs-goploy_v0.5.0_linux_amd64.zip
+$ unzip ecs-goploy_v0.5.0_linux_amd64.zip
 $ ./ecs-goploy --help
 ```
 
