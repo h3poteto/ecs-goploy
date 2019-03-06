@@ -96,6 +96,7 @@ For example:
 package deploy
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/service/ecs"
@@ -163,8 +164,8 @@ func (s *Service) Deploy() error {
 // divideImageAndTag separates imageWithTag into repository and tag.
 func divideImageAndTag(imageWithTag string) (*string, *string, error) {
 	res := strings.Split(imageWithTag, ":")
-	if len(res) >= 3 {
-		return nil, nil, errors.New("image format is wrong")
+	if len(res) != 2 {
+		return nil, nil, fmt.Errorf("image format is wrong: %s", imageWithTag)
 	}
 	return &res[0], &res[1], nil
 

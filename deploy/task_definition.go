@@ -5,6 +5,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/aws/aws-sdk-go/service/ecs/ecsiface"
+	"github.com/pkg/errors"
 )
 
 // TaskDefinition has image and task definition information.
@@ -81,7 +82,7 @@ func (d *TaskDefinition) NewContainerDefinition(baseDefinition *ecs.ContainerDef
 	}
 	baseRepository, _, err := divideImageAndTag(*baseDefinition.Image)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "Task definition format is incorrect in base task definition")
 	}
 	if newImage.Repository != *baseRepository {
 		return baseDefinition, nil
