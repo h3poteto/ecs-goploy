@@ -1,5 +1,5 @@
 # ecs-goploy
-[![CircleCI](https://circleci.com/gh/h3poteto/ecs-goploy.svg?style=svg)](https://circleci.com/gh/h3poteto/ecs-goploy)
+[![Build Status](https://travis-ci.com/h3poteto/ecs-goploy.svg?branch=master)](https://travis-ci.com/h3poteto/ecs-goploy)
 [![GitHub release](http://img.shields.io/github/release/h3poteto/ecs-goploy.svg?style=flat-square)](https://github.com/h3poteto/ecs-goploy/releases)
 [![GoDoc](https://godoc.org/github.com/h3poteto/ecs-goploy/deploy?status.svg)](https://godoc.org/github.com/h3poteto/ecs-goploy/deploy)
 
