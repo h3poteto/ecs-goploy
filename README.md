@@ -62,7 +62,7 @@ At first, you must update the task definition which is used to run ecs task.
 After that, you can run ecs task.
 
 ```
-$ NEW_TASK_DEFINITION=`./ecs-goploy --base-task-definition my-task-definition:1 --image nginx:stable`
+$ NEW_TASK_DEFINITION=`./ecs-goploy update task-definition --base-task-definition my-task-definition:1 --image nginx:stable`
 $ ./ecs-goploy run task --cluster my-cluster --container-name web --task-definition $NEW_TASK_DEFINITION --command "some commands"
 ```
 
@@ -72,7 +72,7 @@ At first, you must update the task definition which is used to run scheduled tas
 After that, you can update the scheduled task.
 
 ```
-$ NEW_TASK_DEFINITION=`./ecs-goploy --base-task-definition my-task-definition:1 --image nginx:stable`
+$ NEW_TASK_DEFINITION=`./ecs-goploy update task-definition --base-task-definition my-task-definition:1 --image nginx:stable`
 $ ./ecs-goploy update scheduled-task --count 1 --name schedule-name --task-definition $NEW_TASK_DEFINITION
 ```
 
