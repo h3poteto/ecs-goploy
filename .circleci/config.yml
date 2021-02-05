@@ -28,7 +28,7 @@ workflows:
   version: 2
   main:
     jobs:
-      - docker:
+      - build:
           context: org-global
           filters:
             tags:
