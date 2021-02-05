@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 
-	ecsdeploy "github.com/h3poteto/ecs-goploy/deploy"
+	ecsdeploy "github.com/connectedservices/ecs-goploy/deploy"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )

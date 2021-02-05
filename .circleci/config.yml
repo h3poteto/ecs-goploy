@@ -1,0 +1,35 @@
+---
+version: 2.1
+
+docker-auth: &docker-auth
+  auth:
+    username: $DOCKERHUB_USERNAME
+    password: $DOCKERHUB_PASSWORD
+
+jobs:
+  build:
+    docker:
+      - image: golang:1.13-alpine
+        <<: *docker-auth
+    steps:
+      - run:
+          name: Install dependencies
+          command: |
+            apk add -U py-pip zip make
+            pip install awscli
+      - checkout
+      - run:
+          name: Build Go package
+          command: |
+            make linux
+            aws s3 cp packages/ecs-goploy_*_linux_amd64.zip s3://${ARTIFACTS_BUCKET}/ecs-goploy/
+
+workflows:
+  version: 2
+  main:
+    jobs:
+      - docker:
+          context: org-global
+          filters:
+            tags:
+              only: /.*/

@@ -3,7 +3,7 @@ Package deploy provides simple functions for deploy ECS.
 
 Usage:
 
-    import "github.com/h3poteto/ecs-goploy/deploy"
+    import "github.com/connectedservices/ecs-goploy/deploy"
 
 Service update
 

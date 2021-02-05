@@ -1,4 +1,4 @@
-module github.com/h3poteto/ecs-goploy
+module github.com/connectedservices/ecs-goploy
 
 go 1.13
 
